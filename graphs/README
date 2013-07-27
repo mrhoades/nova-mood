@@ -1,0 +1,14 @@
+
+
+
+http://pygal.org/
+
+
+sudo apt-get install python-lxml
+
+sudo pip install pygal
+
+
+-- for rendering png files
+sudo pip install CairoSVG tinycss cssselect
+

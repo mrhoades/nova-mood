@@ -1,0 +1,143 @@
+
+##################################################################
+####### CLOUD MOOD TODO - TONIGHT:
+##################################################################
+
+0) TONIGHT - checkin to git hub
+0) TONIGHT - setup mysql server
+0) TONIGHT - setup jenkins jobs to get get data flowing to db
+0) TONIGHT - generate graphs with pygal
+
+
+##################################################################
+####### CLOUD MOOD TODO - SOON:
+##################################################################
+
+0) fix up config.yaml template for environment, tests, throttle, and server (import - convert to data structure - run)
+    -- user should be able to pass paramaters config.yaml, nova password, db password, and that's all.
+
+0) Move configs and config structs into config directory
+
+0) make main entry take a config file and a password - then run the test based on that config file.
+    -- this will make it easy to stamp out several reusable config templates
+
+0) create timeout decorated funcs for PING, SSH, NOVA LIST, that will self destruct it appears to hang.
+    -- These commands should not hang! If they do, kill them ASAP, throw error, let retry logic kick in.
+
+0) db queries calculate percentiles - insert variable integer into LIMIT query - by using string.format
+
+0) Need a better algorithm to get pre-provisioned floating IPs - to resolve continuous orphaning of IPs when failures occur
+    -- currently pools no worky with either bravo or prod
+
+0) fix the damn error code normalization!!! need all error codes from openstack.
+
+0) print SQL query - stats breakdown at end of run in text output
+
+0) test out using python chart creation to generate graphs - then display them with jenkins html publish
+
+0) code up scenario for booting 100s of nodes sequentially
+
+0) log all the nova request parameters with the action, in test_results_granular - could help debug errors
+
+0) in az2, after attaching a floating ip, is ssh port open, in ssh scenarios where ssh appears to be failing? when failure occurs, try ssh in from the other auto-assigned floating ip and debug.
+
+0) don't flip positive bit for errors_exist for rate-limiting and quota errors? errr maybe?
+0) calculate rps by counting requests for a given test_pass_id - report this rps with the pass itself
+
+0) create a production stats database server
+	-- need dns entry - mysql.paas.hpcloud.net
+	-- boot node mysql.paas.hpcloud.net
+	-- install mysql.paas.hpcloud.net
+
+0) get the data flowing - stats to the db
+
+0) create jobs that generate data for all envs
+
+0) write sql queries to analyze data flow
+
+
+
+
+##################################################################
+####### CLOUD MOOD TODO - BACKLOG - THOUGHTS:
+##################################################################
+
+0) how the do you auto-throttle?
+-- do you even need to, given the retry logic in place?
+-- query for rate limiting messages in previous test runs?
+-- estimate the speed at which you were moving before?
+-- <expected max_rps>/<number of threads running> * happiness multiplier
+
+0) can you share status data between threads? in NovaEnvInfo object maybe
+-- insert 'nova flavor' and 'nova image' data into database
+    -- each thread looks in the db for this data, to take load off nova
+-- insert 'nova list' data into db - with a time stamp
+-- all threads query database for info about their node
+-- if the timestamp is expired (data is 6 seconds old) - then update the stamp and data
+
+0) document how the hell to use all of this stuff
+
+0) anytime you hit a rate-limiting error for a given environment and test function, trigger
+a database call that analyzes what has been going on and then adjust a shared auto-throttle sleep_time. conversely
+you could track the number of successful calls without limiting and bump up speed (lower sleep throttle).
+
+0) provide web page that shows charts with selectors and switches to shape the charts (datadog like)
+
+0) attach floating ip should verify that it is attached
+0) create metric data structure
+0) get some graphs generating asap
+
+0) scrape the nova console-log to see if the networking failed or what?
+0) use python to generate graphs that jenkins can display on the job home page. how? can external web page be embedded in jenkins? yes, html publisher, with pygal charts.
+0) calculate the RPS - auto throttle your attack!!!! ONLY WORKS FOR SINGLE THREAD. need a way to remote share objects. only slow down on rate-limiting - speed up on successful requests in a row.
+
+-- sync_throttle_retry_collect
+synchronizes nova calls
+throttles the flow by sleep after acquiring a lock
+
+
+
+##################################################################
+####### CLOUD MOOD COMPLETED ARCHIVE:
+##################################################################
+
+
+0) DONE - don't hardcode ssh user to 'ubuntu'
+0) DONE - add cloud account username that is used for a test pass, to nova_mood schema (is rate-limiting impacted by account)
+0) DONE - create a test_passes table. move environ info to this table. map with test_pass_id
+0) DONE - send results to a mysql database (store this shit - so you can mine it)
+0) DONE - bugbugbug - delete server isn't retrying after getting timeout failure
+0) DONE - set image and flavor ids for the env and share id with all proc threads
+0) DONE - delete and then poll for deletion - throw error if some chit doesn't delete
+0) DONE - cleanup up handling of zone and region - split old definition into separate entities as grizzly and 1.0 differ
+0) DONE - step through all nova funcs and make sure respective NovaTestStat values are set correctly in DB
+0) DONE - write db funcs for creating inserting and updating a new test pass
+0) DONE - create rand guid to append to instanced booted - to eliminate catastrophic failures horked nodes stuck deleting or building
+0) DONE - bugbugbug - instance_count is not being entered into db
+0) DONE - write db funcs for logging result data
+0) DONE - remove hard coded ssh timeout
+
+0) DONE - create stats struct
+0) DONE - collect stats from test run
+	- start test run complete test run
+	- start test case
+	- complete test case
+0) DONE - pump stats into database
+0) DONE - fix the grizzly-east paas jobs - what changed? - they aren't working - point to your personal account
+0) DONE - thread app to run each test on it's own thread
+0) DONE - wrap or re-wrap every nova request, so it can be decorated
+0) DONE - implement a global thread lock to synchronize requests
+0) DONE - implement throttle control for each request type
+0) DONE - implement retry with expo backoff
+0) DONE - timeout on child threads
+0) DONE - put cleanup at the start of a job, as well as the end. don't want to see two failures in a row.
+0) DONE - roll in attach_new_or_used_floating_ip into new test stuff (damn float-ips without pool!!)
+0) DONE - need ssh into node script
+0) DONE - fix the bug with failure on job after failure
+0) DONE - throttle data structure
+0) DONE - weave in the auto throttle YO! (didn't  work so well)
+0) DONE - create db setup script
+0) DONE - create test data insert script
+
+
+

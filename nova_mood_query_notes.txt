@@ -1,0 +1,220 @@
+
+-- db queries don't persist from pycharm db console environ to environ. use this to persist db query notes
+
+use nova_mood;
+
+select * from test_passes order by test_pass_id desc;
+select * from test_results order by test_pass_id desc;
+
+select * from test_results where test_pass_id=10;
+select * from test_results where concurrency_count=21;
+
+select * from test_results order by test_id desc;
+select * from  test_results_granular order by test_id desc;
+
+
+-- avg'z by region and concurrency count
+select count(*) as total_booted,
+  tp.environ_name,
+  tp.region,
+  tp.cloud_account_username,
+  t.concurrency_count,
+  AVG(NULLIF(t.time_total,0)) as avg_time_total,
+  AVG(NULLIF(t.time_to_active,0)) as avg_time_to_active,
+  AVG(NULLIF(t.time_to_ping,0)) as avg_time_to_ping,
+  AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
+  AVG(t.hard_errors_exist) as pct_error,
+  SUM(t.hard_error_count) as hard_error_count,
+  SUM(t.hard_error_count) as soft_error_count
+from test_results as t
+left join test_passes as tp on tp.test_pass_id = t.test_pass_id
+group by tp.environ_name, tp.region, t.concurrency_count
+order by t.concurrency_count, tp.region;
+
+-- error count for funcs in given envs
+select trg.function_name, trg.error_type, count(*) as errors
+from test_results_granular as trg
+left join test_results tr on trg.test_id = tr.test_id
+where error_type != ''
+group by trg.function_name, trg.error_type
+order by trg.function_name;
+
+-- max ssh wait (so you know to set the timeout +60 seconds above this)
+select count(*) as total_ssh_calls,
+  avg(time_total) as time_avg,
+  max(time_total) as time_max,
+  min(time_total) as time_min
+from  test_results_granular
+where function_name = 'ssh' and error_type = ''
+order by test_id desc;
+
+-- exclude 0's in avg
+-- AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
+
+-- error type counts
+select count(*) as errors, trg.error_type
+from test_results_granular as trg
+left join test_results tr on trg.test_id = tr.test_id
+group by trg.error_type;
+
+# where error_type = 'Rate Limited'
+
+
+
+-- error count for funcs in given envs
+select count(*) as func_error_count,
+  tp.environ_name,
+  trg.function_name,
+  trg.error_type
+from test_results as tr
+left join test_results_granular as trg on tr.test_id = trg.test_id
+left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+where error_type != ''
+group by trg.function_name, trg.error_type;
+
+
+-- error count for funcs in given envs
+select count(*) as func_error_count,
+  tp.environ_name,
+  trg.function_name,
+  trg.error_type
+from test_passes as tp
+left join test_results tr on tp.test_pass_id = tp.test_pass_id
+left join test_results_granular as trg on tr.test_id = trg.test_id
+where error_type != ''
+group by tp.environ_name, trg.function_name, trg.error_type;
+
+
+update test_results set hard_errors_exist = 0 where hard_error_count = 0
+
+
+
+
+-- error counts
+select count(*), rg.error_type from  test_results as r
+left join test_results_granular as rg on r.test_id = rg.test_id
+where rg.error_type != 'None'
+group by rg.error_type;
+
+
+select *
+from  test_results as r
+left join test_results_granular as rg on r.test_id = rg.test_id
+order by test_pass_id desc;
+
+
+
+
+select *
+from  test_results as r
+left join test_results_granular as rg on r.test_id = rg.test_id;
+
+
+select *
+from  test_results as r
+left join test_results_granular as rg on r.test_id = rg.test_id
+where test_pass_id=7;
+
+
+
+select * from test_results where is_active = 1 order by time_to_active asc;
+
+select * from test_results_granular order by test_id desc, time_started asc;
+
+
+-- count using group by partial date
+select DATE_FORMAT(time_started, '%d-%m-%y') as my_date, count(*)
+from test_results
+group by my_date;
+
+
+select r.test_id, r.test_name, rg.function_name, rg.time_started
+from  test_results as r
+left join test_results_granular as rg on r.test_id = rg.test_id
+where rg.time_started > DATE_SUB(NOW(), INTERVAL 60 minute);
+
+
+select *
+from  test_results as r
+left join test_results_granular as rg on r.test_id = rg.test_id
+where rg.time_started > DATE_SUB(NOW(), INTERVAL 60 minute)
+and r.environ_name = 'bravo';
+
+
+
+-- 50th percentile boot time to active status
+select ROUND((select count(*) from test_results_granular where function_name = 'wait_for_active_status') / 2) into @fifty;
+
+
+select ROUND((select count(*) from test_results_granular where function_name = 'wait_for_active_status') / 2) as count_wait_for_active;
+
+select t.time_total
+from test_results_granular as t
+where t.function_name = 'wait_for_active_status'
+order by t.time_total desc
+limit 53, 1;
+
+
+-- rps for given environments
+select count(*)
+from  test_results as r
+left join test_results_granular as rg on r.test_id = rg.test_id
+where rg.time_started > DATE_SUB(NOW(), INTERVAL 60 minute)
+and r.environ_name = 'bravo';
+
+
+-- rps for given environments
+select r.environ_name, count(*)
+from  test_results as r
+left join test_results_granular as rg on r.test_id = rg.test_id
+where rg.time_started > DATE_SUB(NOW(), INTERVAL 60 SECOND)
+group by r.environ_name;
+
+
+
+-- test count run against environment in the last 30 days
+select environ_name, test_name, count(*) as count
+from test_results
+where time_started > DATE_SUB(NOW(), INTERVAL 30 day)
+group by environ_name, test_name;
+
+
+
+-- avg time to active status
+select count(*), avg(time_total) from test_results_granular where function_name = 'wait_for_active_status';
+
+-- count wait_for_active_status rows - get the 99th percentile row by dividing total rows by 100
+select ROUND((select count(*) from test_results_granular where function_name = 'wait_for_active_status') / 100);
+
+-- count wait_for_active_status rows - get the 95th percentile row by dividing total rows by 20
+select ROUND((select count(*) from test_results_granular where function_name = 'wait_for_active_status') / 20);
+
+-- count wait_for_active_status rows - get the 75th percentile row by dividing total rows by 4
+select ROUND((select count(*) from test_results_granular where function_name = 'wait_for_active_status') / 4);
+
+-- count wait_for_active_status rows - get the 75th percentile row by dividing total rows by 2
+select ROUND((select count(*) from test_results_granular where function_name = 'wait_for_active_status') / 2);
+
+-- 50th percentile boot time to active status
+select ROUND((select count(*) from test_results_granular where function_name = 'wait_for_active_status') / 2) into @fifty;
+
+select t.time_total
+from test_results_granular as t
+where t.function_name = 'wait_for_active_status'
+order by t.time_total desc
+limit 53, 1;
+
+
+
+select * from test_results_granular;
+
+select * from test_results_granular where function_name = 'wait_for_active_status';
+
+select distinct error from test_results_granular;
+
+
+
+select * from test_results_granular where test_id = 742;
+
+select * from test_results_granular where error != 'None';
+
