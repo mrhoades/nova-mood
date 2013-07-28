@@ -1,23 +1,25 @@
 # *** ENVIRONMENT VARS will be merged and override any matching settings ***
 
 # Nova Test Options
-nova_test_settings:
+boot_test_settings:
   test_name: 'nova-boot-scaling'          # nodes will be booted with name <test_name><counter><guid>
   environ_name: 'bravo'                   # environ name will be used for stats grouping (bravo, dbaas, grizzle)
   assign_floating_ip: True                # accounts must have available float-ip quota to use this
 
 # Nova Connection Info
-nova_auth_info:
-  username: ''
-  password: ''
-  api_key: ''
-  tenant_name: ''
-  auth_url: ''
-  region: ''
-  availability_zone: ''
+nova_auth:
+  username: 'please_set'
+  password: 'please_set'
+  tenant_name: 'please_set'
+  project_id: 'please_set'
+  api_key: 'please_set'
+  auth_url: 'please_set'
+  region: 'please_set'
+  auth_ver: 'please_set'
+  availability_zone: 'please_set'
 
-# Stats DB Connect Info
-stats_db_info:
+# Nova Mood Stats DB Connect Info
+nova_mood_db_auth:
   db_hostname_or_ip: 'please_set_ip'
   db_name: 'nova_mood'
   db_root_user: 'root'
@@ -48,20 +50,23 @@ throttle:
   delete_instance: .2
   max_rps: 1
 
-# *** settings for scaling tests ***
+# *** settings for boot scaling tests ***
 # instance_count_seed - number of nodes to start with on first iteration
-# multiplier - determines how fast to scale up exponentially (use 1 to ignore)
+# pool_workers - number of workers to use concurrently (if set to -1, will always match instance_count_seed)
+# multiplier - determines how fast to scale up exponentially (use 1 to ignore - multiply by 1)
 # bump_up - determines linear scale up
 # iterations - how many times to scale up
 # examples - seed 1, multiplier 2, bump_up 0, iterations 6 = 1, 2, 4, 8, 16, 32
 # examples - seed 1, multiplier 3, bump_up 0, iterations 5 = 1, 3, 9, 27, 81
 # examples - seed 10, multiplier 2, bump_up 0, iterations 4 = 10, 20, 40, 80
 # examples - seed 5, multiplier 1, bump_up 5, iterations 4 = 5, 10, 15, 20
+# examples - seed 10, workers 5, multiplier 2, bump_up 0, iterations 4 = 10, 20, 40, 80 (always worker_pool of 5)
 boot_scaling:
   instance_count_seed: 1
+  pool_workers: -1
   multiplier: 2
   bump_up: 0
-  iterations: 6
+  iterations: 1
 
 # when a nova request error is experienced, retry logic will capture
 # the error and retry using exponential back off timings
@@ -70,5 +75,12 @@ retry_expo_backoff:
   back_off: 3
   delay: 3
 
-
-
+# timeouts for nova mood
+timeouts:
+  job: 3600
+  parent_test: 3600
+  test: 600
+  cleanup_env_thread: 180
+  wait_for_active: 360
+  ping_instance: 360
+  ssh_instance: 360
