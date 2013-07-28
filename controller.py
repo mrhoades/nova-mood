@@ -11,19 +11,23 @@ from time import sleep
 from random import randint
 from decorators.timeout import timeout
 from structs.nova_env_info import NovaTestInfo
-from structs.throttle import Throttle
+from structs.nova_auth import NovaAuth
 from structs.nova_test_stats import NovaTestStats
 from structs.nova_mood_timouts import NovaMoodTimeouts
+from structs.boot_scaling import BootScaling
+from structs.throttle import Throttle
 from nova_service_test import NovaServiceTest
 
 logging.basicConfig(format='%(asctime)s\t%(name)-16s %(levelname)-8s %(message)s')
 logger = logging.getLogger('controller')
 logger.setLevel(logging.INFO)
 
-throttle = Throttle()
 manager = multiprocessing.Manager()
 global_lock = manager.Lock()
+throttle = Throttle()
 timeouts = NovaMoodTimeouts()
+boot_scaling = BootScaling()
+nova_auth = NovaAuth()
 
 @timeout(timeouts.job)
 def main():
@@ -32,15 +36,15 @@ def main():
     env = parse_args(env)           # fill with args data
     pass
 
+    cleanup_nova_test_env(env)
     create_perf_metric_security_group(env)
     nova_boot_scaling(env)
-    sleep(60)
 
 
 @timeout(timeouts.parent_test)
 def nova_boot_scaling(env):
 
-    env.test_name = 'nova-boot-expo-scaling'
+    env.test_name = 'nova-boot-mhome-scaling'
     logger.info('BEGIN PARENT TEST: {0}'.format(env.test_name))
     pass_stats = NovaTestStats(test_name=env.test_name,
                                environ_name=env.env_name,
@@ -56,27 +60,14 @@ def nova_boot_scaling(env):
         cleanup_nova_test_env(env)
         env = get_flavor_and_image_objects(env)  # set image and flavor objects with env specific id's
 
-        # bgubugbug - scaling config options not complete - this is hard coded to boot 32 instances
-        # instance_count_seed = 1
-        # multiplier = 2  # *2 multiplier over 6 iterations equates to 32 instances
-        # iterations = 1
-        # pool_workers = 30
-        # bump_up = 6     # +5 bump_up over 6 iterations equates to 26 instances
-
-        instance_count_seed = 1
-        multiplier = 2          # *2 multiplier over 6 iterations equates to 32 instances
-        iterations = 6
-        bump_up = 0             # +5 bump_up over 6 iterations equates to 26 instances
-        pool_workers = None     # when set to None, worker count will be match instance_count_seed
-
-        for i in range(iterations):
+        for i in range(boot_scaling.iterations):
 
             print 'sleep another {0} seconds - cool off before next iteration {1} of tests'.format(10 * i * i, i)
             sleep(10 * i * i)  # the heavier the load, the heavier the cool off
-            test_nova_boot_concurrently(env, instance_count_seed, pool_workers)
+            test_nova_boot_concurrently(env, boot_scaling.instance_count_seed, boot_scaling.pool_workers)
             cleanup_nova_test_env(env)
-            instance_count_seed *= multiplier
-            instance_count_seed += bump_up
+            boot_scaling.instance_count_seed *= boot_scaling.multiplier
+            boot_scaling.instance_count_seed += boot_scaling.bump_up
 
     except Exception as e:
         msg = 'ERROR IN TEST: {0} {1}'.format(env.test_name, e.message)
@@ -98,7 +89,7 @@ def test_nova_boot_concurrently(env, instance_count, pool_workers=None):
     test_list = []
     test_results = []
 
-    if pool_workers is None:
+    if pool_workers is None or pool_workers == -1:
         pool_workers = instance_count
     pool = multiprocessing.Pool(processes=pool_workers)
 
@@ -343,9 +334,20 @@ def parse_config_yaml(env):
     with open(dir_name + '/config.yaml', 'r') as f:
         config = yaml.load(f)
 
+        for member_name in sorted(vars(nova_auth)):
+            eval_string = "nova_auth.{0} = '{1}'".format(member_name, str(config['nova_auth'][member_name]))
+            exec eval_string
+
+        for member_name in sorted(vars(boot_scaling)):
+            eval_string = "boot_scaling.{0} = {1}".format(member_name, str(config['boot_scaling'][member_name]))
+            exec eval_string
+
+        for member_name in sorted(vars(timeouts)):
+            eval_string = "timeouts.{0} = {1}".format(member_name, str(config['timeouts'][member_name]))
+            exec eval_string
+
         for member_name in sorted(vars(throttle)):
             eval_string = "throttle.{0} = {1}".format(member_name, str(config['throttle'][member_name]))
-            print eval_string
             exec eval_string
 
     return env
