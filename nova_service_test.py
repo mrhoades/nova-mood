@@ -655,7 +655,9 @@ class NovaServiceTest(object):
     @nova_collector(bool_sync=False, tries=5, throttle=0)
     def reboot_hard(self, server):
         logger.info('Reboot server HARD {0}-{1}'.format(server.id, server.name))
-        self.nova.servers.reboot(server.id, reboot_type='HARD')
+        # no worky in bravo
+        # self.nova.servers.reboot(server.id, reboot_type='HARD')
+        self.nova.servers.reboot(server.id)
 
     @nova_collector(bool_sync=False, tries=1, throttle=0)
     def reboot_server_wait_for_active(self, server, wait_seconds=180):
