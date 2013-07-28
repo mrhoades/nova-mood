@@ -1,7 +1,7 @@
 
 *** Nova Mood Still Under Construction ***
 
-Thanks to JesusSaurus for a ton of nova_service_test.py code. It was a huge chunk of excellent clay to start with!
+Thanks to jesusaurus for a ton of nova_service_test.py code. It was a huge chunk of excellent clay to start with!
 
 
 Nova Mood Synopsis
