@@ -239,8 +239,10 @@ def cleanup_nova_test_env(env):
         nova.delete_servers_with_pattern(env.test_name)
 
         # TODO: load all these ignore ips from a config
-        nova.delete_floating_ips(ignore_ip_list={'15.185.188.49', '15.185.188.49', '15.185.103.238',
-                                                 '15.185.111.169', '15.185.113.81'})
+
+        # TODO: bugbugbug - need to find a better way of cleaning up orphaned floating ips
+        # nova.delete_floating_ips(ignore_ip_list={'15.185.188.49', '15.185.188.49', '15.185.103.238',
+        #                                          '15.185.111.169', '15.185.113.81'})
 
         #  bugbugbug - wait for deletion old school style.
         # need a more definitive way to know that we're done with cleanup.
