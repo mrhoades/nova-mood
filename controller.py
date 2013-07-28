@@ -36,7 +36,6 @@ def main():
     env = parse_args(env)           # fill with args data
     pass
 
-    cleanup_nova_test_env(env)
     create_perf_metric_security_group(env)
     nova_boot_scaling(env)
 
