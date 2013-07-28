@@ -43,7 +43,6 @@ def main():
 @timeout(timeouts.parent_test)
 def nova_boot_scaling(env):
 
-    env.test_name = 'nova-boot-mhome-scaling'
     logger.info('BEGIN PARENT TEST: {0}'.format(env.test_name))
     pass_stats = NovaTestStats(test_name=env.test_name,
                                environ_name=env.env_name,
