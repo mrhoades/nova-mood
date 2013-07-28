@@ -45,7 +45,7 @@ def nova_collector(tries=5, delay=5, back_off=2, throttle=nova_throttle.default_
                     return f(*args, **kwargs)
 
                 except Exception, e:
-                    error_text = "EXCEPTION in throttle with function: {0} {1}"\
+                    error_text = "EXCEPTION in throttle with function: {0} {1} {2}"\
                         .format(str(f.func_name), str(e), args_tostring(*args))
 
                     print error_text
