@@ -375,6 +375,14 @@ class NovaServiceTest(object):
     def server_attach_floating_ip(self, nova_server_object, floating_ip):
         logger.info("Attach floating IP {0} to server {1}".format(floating_ip, nova_server_object.name))
         nova_server_object.add_floating_ip(floating_ip)
+        self.verify_floating_ip_attached(nova_server_object, floating_ip.ip)
+
+    @nova_collector(bool_sync=False, tries=1, throttle=nova_throttle.floating_ip_attach)
+    def verify_floating_ip_attached(self, nova_server_object, ip):
+        logger.info("Verify floating IP {0} is attached to server {1}".format(ip, nova_server_object.name))
+        new_server_object = self.nova_show_server(nova_server_object.id)
+        if str(ip) not in str(new_server_object.addresses):
+            raise Exception('ERROR: Floating ip {0} did not attach to server {1}.'.format(ip, nova_server_object.name))
 
     @nova_collector(bool_sync=nova_throttle.bool_sync_float_ip, throttle=nova_throttle.floating_ip_attach)
     def server_detach_floating_ip(self, nova_server_object, floating_ip):
@@ -422,7 +430,9 @@ class NovaServiceTest(object):
     @nova_collector(bool_sync=nova_throttle.bool_sync_float_ip, throttle=nova_throttle.floating_ip_create)
     def floating_ip_create(self, pool=None):
         logger.info('Attempt to provision a new floating IP')
-        float = self.nova.floating_ips.create(pool=pool)
+        # pool logic no worky in bravo
+        # float = self.nova.floating_ips.create(pool=pool)
+        float = self.nova.floating_ips.create()
         logger.info('Created new floating IP {0}'.format(float))
         return float
 
