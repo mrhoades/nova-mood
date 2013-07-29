@@ -700,6 +700,7 @@ class NovaServiceTest(object):
                             '{3}'.format(username, server.ip_floating, server.name, e))
 
             finally:
+                logger.debug('SSH Return Code: ' + str(return_code))
                 logger.debug('SSH Request Output: ' + str(out))
 
                 if return_code == 0 and out.find(server.name) > -1:
