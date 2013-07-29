@@ -336,18 +336,22 @@ def parse_config_yaml(env):
 
         for member_name in sorted(vars(nova_auth)):
             eval_string = "nova_auth.{0} = '{1}'".format(member_name, str(config['nova_auth'][member_name]))
+            logger.debug(eval_string)
             exec eval_string
 
         for member_name in sorted(vars(boot_scaling)):
             eval_string = "boot_scaling.{0} = {1}".format(member_name, str(config['boot_scaling'][member_name]))
+            logger.debug(eval_string)
             exec eval_string
 
         for member_name in sorted(vars(timeouts)):
             eval_string = "timeouts.{0} = {1}".format(member_name, str(config['timeouts'][member_name]))
+            logger.debug(eval_string)
             exec eval_string
 
         for member_name in sorted(vars(throttle)):
             eval_string = "throttle.{0} = {1}".format(member_name, str(config['throttle'][member_name]))
+            logger.debug(eval_string)
             exec eval_string
 
     return env
