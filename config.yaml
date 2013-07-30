@@ -43,10 +43,10 @@ throttle:
   bool_sync_requests: False
   bool_auto_throttle: False
   bool_sync_float_ip: False
-  floating_ip_create: 8
-  floating_ip_attach: 8
-  floating_ip_delete: 8
-  floating_ip_list: 5
+  floating_ip_create: .2
+  floating_ip_attach: .2
+  floating_ip_delete: .2
+  floating_ip_list: .2
   delete_instance: .2
   max_rps: 1
 
@@ -80,7 +80,7 @@ timeouts:
   job: 3600
   parent_test: 3600
   test: 600
-  cleanup_env_thread: 180
+  cleanup_env_thread: 360
   wait_for_active: 360
   ping_instance: 360
   ssh_instance: 360
