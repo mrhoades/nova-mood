@@ -373,6 +373,7 @@ class NovaServiceTest(object):
     @nova_collector(bool_sync=nova_throttle.bool_sync_requests, throttle=nova_throttle.delete_instance)
     def server_delete(self, server):
         if hasattr(server, 'id'):
+            pass
             logger.info("Delete server with ID: {0} - NAME: {1}".format(server.id, server.name))
             self.nova.servers.delete(server.id)
         else:
