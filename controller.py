@@ -36,7 +36,9 @@ def main():
     env = parse_args(env)           # fill with args data
     pass
 
-    create_perf_metric_security_group(env)
+    # cleanup_nova_test_env(env)
+    # cleanup_all_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
+    # create_perf_metric_security_group(env)
     nova_boot_scaling(env)
 
 
@@ -129,6 +131,8 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
     # rps = stats_queries.get_rps_for_environment(env.env_name, 1)
     # print 'RPS: ' + str(rps)
 
+    server = None
+
     try:
 
         nova = NovaServiceTest(throttle_in=throttle,
@@ -173,7 +177,7 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
         if env.nova_assign_floating_ip:
             nova.floating_ip_deallocate(nova_server_object, server.ip_floating)
 
-        nova.server_delete(server.id)
+        nova.server_delete(server)
         nova.wait_for_deletion(server.id)
 
     except Exception as e:
@@ -254,8 +258,45 @@ def cleanup_nova_test_env(env):
 
 
 @timeout(timeouts.cleanup_env_thread)
+def cleanup_all_float_ip_in_test_env(env, ignore_ip_list=None):
+    logger.info('Cleanup test environment: {0}'.format(env.test_name))
+
+    try:
+        nova = NovaServiceTest(lock=global_lock,
+                               username=env.username,
+                               password=env.password,
+                               tenant_name=env.tenant_name,
+                               project_id=env.project_id,
+                               auth_url=env.auth_url,
+                               region=env.region,
+                               keypair=env.key_name,
+                               auth_ver=env.auth_ver,
+                               count=env.instance_count,
+                               instance_name=env.instance_name,
+                               test_name=env.test_name,
+                               timeout=env.timeout_minutes,
+                               availability_zone=env.availability_zone,
+                               action_sleep_interval=env.action_sleep_interval)
+
+        nova.connect()
+
+        # nova.delete_floating_ips(ignore_ip_list={'15.185.188.49', '15.185.188.49', '15.185.103.238',
+        #                                          '15.185.111.169', '15.185.113.81'})
+
+        nova.delete_floating_ips(ignore_ip_list)
+
+        #  bugbugbug - wait for deletion old school style.
+        # need a more definitive way to know that we're done with cleanup.
+        print 'Sleep for 10 seconds and wait for deletions to clear out.'
+        sleep(10)  # wait for test deletions to clear out
+        print 'Cleanup complete!'
+    except Exception as e:
+        logger.info('ERROR IN TEST: cleanup_nova_test_env for parent job '.format(e))
+
+
+@timeout(timeouts.cleanup_env_thread)
 def get_flavor_and_image_objects(env):
-    logger.info('Get Image and Flavor Objects for: {0}'.format(env.test_name))
+    logger.info('Get Image and Flavor Objects for REGION: {0} and AZ: '.format(env.region, env.availability_zone))
 
     try:
         nova = NovaServiceTest(lock=global_lock,
