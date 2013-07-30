@@ -107,6 +107,8 @@ def get_error_type(error_string):
         return "Delete Server Timeout"
     elif 'floating ip attach failed' in error_text:
         return "Floating IP Attach Failed"
+    elif 'http 500' in error_text:
+        return "(HTTP 500)"
     elif 'bad request' in error_text or '400' in error_text:
         return "Malformed Request"
     else:
