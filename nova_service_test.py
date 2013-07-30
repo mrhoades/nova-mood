@@ -45,11 +45,11 @@ def nova_collector(tries=5, delay=5, back_off=2, throttle=nova_throttle.default_
                     return f(*args, **kwargs)
 
                 except Exception, e:
-                    error_text = "EXCEPTION in nova_collector with FUNC: '{0}' EXCEPTION: '{1}' MESSAGE: '{2}' " \
-                                 "ARGS: '{3}'".format(str(f.func_name), str(e), str(e.message), args_tostring(*args))
+                    error_text = "EXCEPTION in nova_collector: {0} FUNC: {1} " \
+                                 "ARGS: {2}".format(str(e), str(f.func_name), args_tostring(*args))
 
                     print error_text
-                    # trace_inner_exception()
+                    # trace_inner_exception() # only user this trace for single node dev environment debugging
 
                     if local_tries > 1:
                         print "Sleep {0} and then retry {1} more times...".format(local_delay, local_tries)
@@ -57,7 +57,7 @@ def nova_collector(tries=5, delay=5, back_off=2, throttle=nova_throttle.default_
                         local_tries -= 1
                         local_delay *= back_off
                     else:
-                        raise Exception("EXIT WITH HARD EXCEPTION at: " + error_text)
+                        raise Exception("EXIT WITH HARD EXCEPTION: " + error_text)
                 finally:
                     finish = datetime.now()
 
@@ -77,7 +77,7 @@ def nova_collector(tries=5, delay=5, back_off=2, throttle=nova_throttle.default_
 
 
 def trace_inner_exception():
-
+    # only user this trace for single node dev environment debugging
     if logging.DEBUG:
         (exc_type, exc_value, exc_traceback) = sys.exc_info()
         print exc_type
