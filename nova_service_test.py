@@ -605,8 +605,8 @@ class NovaServiceTest(object):
                         "to reach ACTIVE state.".format(timeout_seconds, server.id))
 
     @nova_collector(tries=1, bool_sync=False)
-    def wait_for_deletion(self, server, timeout_seconds=180):
-        logger.info("Wait for server with ID: {0} - NAME: {1} to be DELETED".format(server.id, server.name))
+    def wait_for_deletion(self, server_id, timeout_seconds=180):
+        logger.info("Wait for server with ID: {0} to be DELETED".format(server_id))
 
         # TODO: remove hard coded timeout here
         stop_time = datetime.now() + timedelta(seconds=timeout_seconds)
@@ -615,8 +615,9 @@ class NovaServiceTest(object):
         while stop_time > datetime.now():
             error_msg = None
             try:
-                logger.info("Check if server with ID: {0} - NAME: {1} EXISTS".format(server.id, server.name))
-                nova_server = self.nova_show_server_no_logging(server.id)
+                logger.info("Wait for server with ID: {0} to be DELETED".format(server_id))
+
+                nova_server = self.nova_show_server_no_logging(server_id)
                 if nova_server is None:
                     # there appears to be a race condition with Quota around deletion
                     # let things simmer for a moment
@@ -629,14 +630,14 @@ class NovaServiceTest(object):
                     raise Exception(e.message)
             finally:
                 if error_msg is not None and ('could not be found' in error_msg or 'HTTP 404' in error_msg):
-                    logger.info("Server with ID: {0} - NAME: {1} DELETED Successfully".format(server.id, server.name))
+                    logger.info("Server with ID: {0} DELETED Successfully".format(server_id))
                     sleep(10)
                     return True
 
             sleep(Throttle.poll_status)
 
         raise Exception('Delete Server Timeout Exception: waited {0} seconds for '
-                        'server ID: {1} - NAME: {2}  to be DELETED.'.format(timeout_seconds, server.id, server.name))
+                        'server ID: {1} to be DELETED.'.format(timeout_seconds, server_id))
 
     @nova_collector(tries=5, delay=3, back_off=4, throttle=nova_throttle.get_server_info)
     def nova_show_server(self, server_id):
