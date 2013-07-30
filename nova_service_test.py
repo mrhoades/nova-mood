@@ -103,6 +103,8 @@ def get_error_type(error_string):
         return "SSH Timeout"
     elif 'ping timeout' in error_text:
         return "Ping Timeout"
+    elif 'delete server timeout' in error_text:
+        return "Delete Server Timeout"
     elif 'floating ip attach failed' in error_text:
         return "Floating IP Attach Failed"
     elif 'bad request' in error_text or '400' in error_text:
@@ -369,9 +371,9 @@ class NovaServiceTest(object):
         self.nova.servers.delete(server_id)
 
     @nova_collector(bool_sync=nova_throttle.bool_sync_requests, throttle=nova_throttle.delete_instance)
-    def server_delete(self, server_id):
-        logger.info("Delete server with ID {0} ".format(server_id))
-        self.nova.servers.delete(server_id)
+    def server_delete(self, server):
+        logger.info("Delete server with ID: {0} - NAME: {1}".format(server.id, server.name))
+        self.nova.servers.delete(server.id)
 
     @nova_collector(bool_sync=nova_throttle.bool_sync_float_ip, throttle=nova_throttle.floating_ip_attach)
     def server_attach_floating_ip(self, nova_server_object, floating_ip):
@@ -382,9 +384,15 @@ class NovaServiceTest(object):
     @nova_collector(bool_sync=False, tries=1, throttle=nova_throttle.floating_ip_attach)
     def verify_floating_ip_attached(self, nova_server_object, ip):
         logger.info("Verify floating IP {0} is attached to server {1}".format(ip, nova_server_object.name))
+
+        # bugbugbug - hard code sleep here for now.
+        # there might be a delay between attach ip and db recognizing attach
+        # should loop for 20 seconds or so maybe, raise error if attach didn't work
+        sleep(5)
         new_server_object = self.nova_show_server(nova_server_object.id)
         if str(ip) not in str(new_server_object.addresses):
-            raise Exception('SOFT ERROR: Floating IP Attach Failed: Floating ip {0} did not attach to server {1}.'.format(ip, nova_server_object.name))
+            raise Exception('SOFT ERROR: Floating IP Attach Failed: Floating ip {0} did not '
+                            'attach to server {1}.'.format(ip, nova_server_object.name))
 
     @nova_collector(bool_sync=nova_throttle.bool_sync_float_ip, throttle=nova_throttle.floating_ip_attach)
     def server_detach_floating_ip(self, nova_server_object, floating_ip):
@@ -397,7 +405,7 @@ class NovaServiceTest(object):
 
     @nova_collector(bool_sync=False, tries=1, throttle=0)
     def floating_ip_attach_new(self, server, pool=None):
-        address_object = self.floating_ip_create(pool)
+        address_object = self.floating_ip_create()
         nova_server_object = self.nova_show_server(server.id)
         self.server_attach_floating_ip(nova_server_object, address_object)
         server.update_floating_ip(address_object)
@@ -590,9 +598,9 @@ class NovaServiceTest(object):
         raise Exception("TIMEOUT Exception after waiting {0} seconds for VM ID '{1}' "
                         "to reach ACTIVE state.".format(timeout_seconds, server.id))
 
-    @nova_collector(tries=1, bool_sync=False, throttle=0)
-    def wait_for_deletion(self, server_id, timeout_seconds=180):
-        logger.info("Wait for server {0} to be DELETED".format(server_id))
+    @nova_collector(tries=1, bool_sync=False)
+    def wait_for_deletion(self, server, timeout_seconds=180):
+        logger.info("Wait for server with ID: {0} - NAME: {1} to be DELETED".format(server.id, server.name))
 
         # TODO: remove hard coded timeout here
         stop_time = datetime.now() + timedelta(seconds=timeout_seconds)
@@ -601,29 +609,28 @@ class NovaServiceTest(object):
         while stop_time > datetime.now():
             error_msg = None
             try:
-                logger.info("Check to see if server {0} exists".format(server_id))
-                nova_server = self.nova_show_server_no_logging(server_id)
+                logger.info("Check if server with ID: {0} - NAME: {1} EXISTS".format(server.id, server.name))
+                nova_server = self.nova_show_server_no_logging(server.id)
                 if nova_server is None:
                     # there appears to be a race condition with Quota around deletion
                     # let things simmer for a moment
                     sleep(10)
                     return True
             except Exception as e:
-
                 error_msg = str(e)
                 logger.info(error_msg)
-
                 if 'timed out' in str(e.message):
                     raise Exception(e.message)
             finally:
                 if error_msg is not None and ('could not be found' in error_msg or 'HTTP 404' in error_msg):
-                    logger.info("Server {0} was DELETED Successfully".format(server_id))
+                    logger.info("Server with ID: {0} - NAME: {1} DELETED Successfully".format(server.id, server.name))
                     sleep(10)
                     return True
 
             sleep(Throttle.poll_status)
 
-        raise Exception('TIMEOUT Exception after waiting {0} seconds VM id {1} to be DELETED.'.format(timeout_seconds, server_id))
+        raise Exception('Delete Server Timeout Exception: waited {0} seconds for '
+                        'server ID: {1} - NAME: {2}  to be DELETED.'.format(timeout_seconds, server.id, server.name))
 
     @nova_collector(tries=5, delay=3, back_off=4, throttle=nova_throttle.get_server_info)
     def nova_show_server(self, server_id):

@@ -61,6 +61,8 @@ class NovaTestStats:
                 self.hard_error_count += 1
             elif 'ping timeout' in str(error_type).lower():
                 self.hard_error_count += 1
+            elif 'delete server timeout' in str(error_type).lower():
+                self.soft_error_count += 1
             else:
                 print 'unknown error type in error text: {0}'.format(error_text)
                 self.hard_error_count += 1
