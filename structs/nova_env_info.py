@@ -1,6 +1,6 @@
 class NovaTestInfo:
     def __init__(self,
-                 env_name='',
+                 env_name='bravo',
                  execution_hostname='',
                  lock=None,
                  test_name='',
