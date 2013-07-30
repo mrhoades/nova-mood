@@ -372,8 +372,14 @@ class NovaServiceTest(object):
 
     @nova_collector(bool_sync=nova_throttle.bool_sync_requests, throttle=nova_throttle.delete_instance)
     def server_delete(self, server):
-        logger.info("Delete server with ID: {0} - NAME: {1}".format(server.id, server.name))
-        self.nova.servers.delete(server.id)
+
+        if server.id:
+            logger.info("Delete server with ID: {0} - NAME: {1}".format(server.id, server.name))
+            self.nova.servers.delete(server.id)
+        else:
+            logger.info("Delete server with ID: {0}".format(server))
+            self.nova.servers.delete(server)
+
 
     @nova_collector(bool_sync=nova_throttle.bool_sync_float_ip, throttle=nova_throttle.floating_ip_attach)
     def server_attach_floating_ip(self, nova_server_object, floating_ip):
