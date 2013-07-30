@@ -103,6 +103,8 @@ def get_error_type(error_string):
         return "SSH Timeout"
     elif 'ping timeout' in error_text:
         return "Ping Timeout"
+    elif 'floating ip attach failed' in error_text:
+        return "Floating IP Attach Failed"
     elif 'bad request' in error_text or '400' in error_text:
         return "Malformed Request"
     else:
@@ -382,7 +384,7 @@ class NovaServiceTest(object):
         logger.info("Verify floating IP {0} is attached to server {1}".format(ip, nova_server_object.name))
         new_server_object = self.nova_show_server(nova_server_object.id)
         if str(ip) not in str(new_server_object.addresses):
-            raise Exception('ERROR: Floating ip {0} did not attach to server {1}.'.format(ip, nova_server_object.name))
+            raise Exception('SOFT ERROR: Floating IP Attach Failed: Floating ip {0} did not attach to server {1}.'.format(ip, nova_server_object.name))
 
     @nova_collector(bool_sync=nova_throttle.bool_sync_float_ip, throttle=nova_throttle.floating_ip_attach)
     def server_detach_floating_ip(self, nova_server_object, floating_ip):
@@ -599,6 +601,7 @@ class NovaServiceTest(object):
         while stop_time > datetime.now():
             error_msg = None
             try:
+                logger.info("Check to see if server {0} exists".format(server_id))
                 nova_server = self.nova_show_server_no_logging(server_id)
                 if nova_server is None:
                     # there appears to be a race condition with Quota around deletion
@@ -608,12 +611,12 @@ class NovaServiceTest(object):
             except Exception as e:
 
                 error_msg = str(e)
-                logger.debug(error_msg)
+                logger.info(error_msg)
 
                 if 'timed out' in str(e.message):
                     raise Exception(e.message)
             finally:
-                if error_msg is not None and 'could not be found' in error_msg:
+                if error_msg is not None and ('could not be found' in error_msg or 'HTTP 404' in error_msg):
                     logger.info("Server {0} was DELETED Successfully".format(server_id))
                     sleep(10)
                     return True
