@@ -98,7 +98,9 @@ def get_error_type(error_string):
     elif 'http 404' in error_text and 'not found' in error_text:
         return "(HTTP 404) Resource Not Found"
     elif 'http 400' in error_text and 'nw_info cache associated with instance' in error_text:
-        return "(HTTP 404) No nw_info cache associated with instance"
+        return "(HTTP 400) No nw_info cache associated with instance"
+    elif 'http 400' in error_text and 'unable to associate floating ip' in error_text:
+        return "Error. Unable to associate floating ip (HTTP 400)"
     elif 'ssh timeout' in error_text:
         return "SSH Timeout"
     elif 'ping timeout' in error_text:
@@ -110,7 +112,7 @@ def get_error_type(error_string):
     elif 'http 500' in error_text:
         return "(HTTP 500)"
     elif 'bad request' in error_text or '400' in error_text:
-        return "Malformed Request"
+        return "(HTTP 400) Bad Request"
     else:
         return error_string
 
