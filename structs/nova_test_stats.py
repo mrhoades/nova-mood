@@ -27,6 +27,7 @@ class NovaTestStats:
         self.time_to_active = 0
         self.time_to_ping = 0
         self.time_to_ssh = 0
+        self.time_to_deleted = 0
         self.is_active = 0
         self.is_ping_able = 0
         self.is_ssh_able = 0
@@ -49,6 +50,8 @@ class NovaTestStats:
             if 'http 429' in str(error_type).lower() or 'rate-limited' in str(error_type).lower() or 'rate limit' in str(error_type).lower():
                 self.soft_error_count += 1
             elif 'ssh timeout' in str(error_type).lower():
+                self.hard_error_count += 1
+            elif 'floating ip attach failed' in str(error_type).lower():
                 self.hard_error_count += 1
             elif 'http 500' in str(error_type).lower():
                 self.hard_error_count += 1
@@ -84,6 +87,9 @@ class NovaTestStats:
     def now_sshable(self):
         self.time_to_ssh = (datetime.now()-self.time_started).total_seconds()
         self.is_ssh_able = 1
+
+    def now_deleted(self):
+        self.time_to_deleted = (datetime.now()-self.time_started).total_seconds()
 
     class NovaActionStat:
         def __init__(self,
