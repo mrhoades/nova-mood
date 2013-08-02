@@ -1,6 +1,6 @@
 class NovaTestInfo:
     def __init__(self,
-                 env_name='bravo',
+                 env_name='prod_1.0',
                  execution_hostname='',
                  lock=None,
                  test_name='',
@@ -17,7 +17,7 @@ class NovaTestInfo:
                  auth_ver='2.0',
                  key_name='',
                  image='Ubuntu Quantal 12.10 Server 64-bit 20121017 (b)',
-                 flavor='standard.small',
+                 flavor='standard.medium',
                  availability_zone='az1',
                  security_group='perf-metrics',
                  action_sleep_interval=.6,
