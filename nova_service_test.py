@@ -101,6 +101,8 @@ def get_error_type(error_string):
         return "(HTTP 400) No nw_info cache associated with instance"
     elif 'http 400' in error_text and 'unable to associate floating ip' in error_text:
         return "Error. Unable to associate floating ip (HTTP 400)"
+    elif 'permission denied (publickey)' in error_text and 'ssh' in error_text:
+        return "SSH Failed: Permission denied (publickey)"
     elif 'ssh timeout' in error_text:
         return "SSH Timeout"
     elif 'ping timeout' in error_text:
