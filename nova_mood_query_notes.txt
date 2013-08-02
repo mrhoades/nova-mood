@@ -1,7 +1,5 @@
-
--- db queries don't persist from pycharm db console environ to environ. use this to persist db query notes
-
 use nova_mood;
+
 
 select * from test_passes order by test_pass_id desc;
 select * from test_results order by test_pass_id desc;
@@ -13,31 +11,10 @@ select * from test_results order by test_id desc;
 select * from  test_results_granular order by test_id desc;
 
 
--- avg'z by region and concurrency count
-select count(*) as total_booted,
-  tp.environ_name,
-  tp.region,
-  tp.cloud_account_username,
-  t.concurrency_count,
-  AVG(NULLIF(t.time_total,0)) as avg_time_total,
-  AVG(NULLIF(t.time_to_active,0)) as avg_time_to_active,
-  AVG(NULLIF(t.time_to_ping,0)) as avg_time_to_ping,
-  AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
-  AVG(t.hard_errors_exist) as pct_error,
-  SUM(t.hard_error_count) as hard_error_count,
-  SUM(t.hard_error_count) as soft_error_count
-from test_results as t
-left join test_passes as tp on tp.test_pass_id = t.test_pass_id
-group by tp.environ_name, tp.region, t.concurrency_count
-order by t.concurrency_count, tp.region;
+-- result cleaning
+update test_passes set environ_name = 'bravo' where environ_name = '';
 
--- error count for funcs in given envs
-select trg.function_name, trg.error_type, count(*) as errors
-from test_results_granular as trg
-left join test_results tr on trg.test_id = tr.test_id
-where error_type != ''
-group by trg.function_name, trg.error_type
-order by trg.function_name;
+
 
 -- max ssh wait (so you know to set the timeout +60 seconds above this)
 select count(*) as total_ssh_calls,
@@ -50,6 +27,101 @@ order by test_id desc;
 
 -- exclude 0's in avg
 -- AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
+
+-- avg'z by region and concurrency count
+select count(*) as total_booted,
+  tp.environ_name,
+  tp.execution_hostname,
+  tp.region,
+  tp.cloud_account_username,
+  t.concurrency_count,
+  AVG(NULLIF(t.time_total,0)) as avg_time_total,
+  AVG(NULLIF(t.time_to_active,0)) as avg_time_to_active,
+  AVG(NULLIF(t.time_to_ping,0)) as avg_time_to_ping,
+  AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
+  AVG(t.hard_errors_exist) as pct_error,
+  SUM(t.hard_error_count) as hard_error_count,
+  SUM(t.soft_error_count) as soft_error_count
+from test_results as t
+left join test_passes as tp on tp.test_pass_id = t.test_pass_id
+where tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+group by tp.region, t.concurrency_count
+order by tp.environ_name, t.concurrency_count;
+
+
+
+
+-- avg'z by region
+select count(*) as total_booted,
+  tp.environ_name,
+  tp.region,
+  tp.cloud_account_username,
+  AVG(NULLIF(t.time_total,0)) as avg_time_total,
+  AVG(NULLIF(t.time_to_active,0)) as avg_time_to_active,
+  AVG(NULLIF(t.time_to_ping,0)) as avg_time_to_ping,
+  AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
+  AVG(t.hard_errors_exist) as pct_error,
+  SUM(t.hard_error_count) as hard_error_count,
+  SUM(t.soft_error_count) as soft_error_count
+from test_results as t
+left join test_passes as tp on tp.test_pass_id = t.test_pass_id
+where tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+group by tp.region
+order by tp.environ_name;
+
+
+
+-- error count for funcs in given envs
+select count(*) as func_error_count,
+  tp.environ_name,
+  trg.function_name,
+  trg.error_type,
+  trg.error_text
+from test_results as tr
+left join test_results_granular as trg on tr.test_id = trg.test_id
+left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+where error_type != ''
+and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+group by trg.function_name, trg.error_type
+order by func_error_count desc;
+
+
+-- error count for funcs in given envs
+select count(*) as func_error_count,
+  tp.environ_name,
+  trg.function_name,
+  trg.error_type,
+  trg.error_text
+from test_results as tr
+left join test_results_granular as trg on tr.test_id = trg.test_id
+left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+where error_type != ''
+and tp.time_started > DATE_SUB(NOW(), INTERVAL 48 hour)
+group by trg.function_name, trg.error_type
+order by func_error_count desc;
+
+
+-- error count for funcs in given envs
+select tp.environ_name,
+  trg.function_name,
+  trg.error_type,
+  trg.error_text
+from test_results as tr
+left join test_results_granular as trg on tr.test_id = trg.test_id
+left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+where error_type != ''
+and tp.time_started > DATE_SUB(NOW(), INTERVAL 3 hour);
+
+
+
+-- error count for funcs in given envs
+select trg.function_name, trg.error_type, count(*) as errors
+from test_results_granular as trg
+left join test_results tr on trg.test_id = tr.test_id
+where error_type != ''
+group by trg.function_name, trg.error_type
+order by trg.function_name;
+
 
 -- error type counts
 select count(*) as errors, trg.error_type
@@ -66,26 +138,17 @@ select count(*) as func_error_count,
   tp.environ_name,
   trg.function_name,
   trg.error_type
-from test_results as tr
-left join test_results_granular as trg on tr.test_id = trg.test_id
-left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
-where error_type != ''
-group by trg.function_name, trg.error_type;
-
-
--- error count for funcs in given envs
-select count(*) as func_error_count,
-  tp.environ_name,
-  trg.function_name,
-  trg.error_type
 from test_passes as tp
 left join test_results tr on tp.test_pass_id = tp.test_pass_id
 left join test_results_granular as trg on tr.test_id = trg.test_id
+
 where error_type != ''
-group by tp.environ_name, trg.function_name, trg.error_type;
+group by trg.error_type
+order by func_error_count desc;
 
 
 update test_results set hard_errors_exist = 0 where hard_error_count = 0
+
 
 
 
