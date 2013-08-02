@@ -77,10 +77,10 @@ retry_expo_backoff:
 
 # timeouts for nova mood
 timeouts:
-  job: 3600
+  job: 36000
   parent_test: 3600
   test: 600
   cleanup_env_thread: 360
-  wait_for_active: 360
-  ping_instance: 360
-  ssh_instance: 360
+  wait_for_active: 240
+  ping_instance: 180
+  ssh_instance: 240
