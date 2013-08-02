@@ -38,7 +38,7 @@ def main():
 
     # cleanup_nova_test_env(env)
     # cleanup_all_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
-    # create_perf_metric_security_group(env)
+    create_perf_metric_security_group(env)
     nova_boot_scaling(env)
 
 
@@ -131,7 +131,7 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
     # rps = stats_queries.get_rps_for_environment(env.env_name, 1)
     # print 'RPS: ' + str(rps)
 
-    server = None
+    nova, server = None, None
 
     try:
 
@@ -197,6 +197,10 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
         test_stats = env.test_case_stats[instance_name]
         nova_mood_db.insert_test_results(test_stats)
 
+        cleanup_server_safely(nova, server)
+        if env.nova_assign_floating_ip:
+            cleanup_floating_ip_safely(nova, server)
+
 
 def test_global_lock_speed(name, global_lock):
 
@@ -255,6 +259,35 @@ def cleanup_nova_test_env(env):
         print 'Cleanup complete!'
     except Exception as e:
         logger.info('ERROR IN TEST: cleanup_nova_test_env for parent job '.format(e))
+
+
+def cleanup_server_safely(nova, server):
+    try:
+        if nova is not None:
+            if server is not None:
+                logger.info('Cleanup server {0} safely.'.format(server.name))
+                nova.connect()
+                nova.server_delete_no_retry(server.id)
+    except Exception as e:
+        if 'HTTP 404' in str(e):
+            logger.info('Server not found - likely already cleaned up.'.format(e))
+        else:
+            logger.info('ERROR: failure with server cleanup'.format(e))
+
+
+def cleanup_floating_ip_safely(nova, server):
+    try:
+        if nova is not None:
+            if server is not None:
+                if server.ip_floating is not None:
+                    logger.info('Cleanup floating ip {0} safely.'.format(server.ip_floating))
+                    nova.connect()
+                    nova.floating_ip_delete(server.ip_floating)
+    except Exception as e:
+        if 'HTTP 404' in str(e):
+            logger.info('Floating ip not found - likely already cleaned up.'.format(e))
+        else:
+            logger.info('ERROR: failure with floating ip cleanup'.format(e))
 
 
 @timeout(timeouts.cleanup_env_thread)
