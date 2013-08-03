@@ -3,25 +3,51 @@
 ####### CLOUD MOOD TODO - TONIGHT:
 ##################################################################
 
-0) TONIGHT - checkin to git hub
-0) TONIGHT - setup mysql server
-0) TONIGHT - setup jenkins jobs to get get data flowing to db
-0) TONIGHT - generate graphs with pygal
+0) DONE - TONIGHT - checkin to git hub
+0) DONE - TONIGHT - setup prod mysql server
+0) DONE - TONIGHT - setup jenkins jobs to get get data flowing to db
+0) DONE - print unique text for hard_error_count - use textfinder plugin to fail job if hard error apperas in console out
+0) DONE - remove hard coded scaling settings so you can single node boot job for health checking
+0) DONE - need normalized "Timeout Deleting Instance" error_type
+
+0) INPROGRESS - TONIGHT - generate graphs with pygal
+
+
+0) DONE - try a no_error cleanup phase in finally - to keep IPs from getting orphaned
+0) IGNORE - stuff floating ip and test-id/instance-id in database table. maybe? maybe not?
+
+
+
+0) trace and step through python call to attach floating ip to server
+    -- is there a bug in the python-novaclient code?
+
+0) print SQL query - stats breakdown at end of run, in prettytable text output
+
+0) fix up config.yaml template for environment, tests, throttle, and server (import - convert to data structure - run)
+    -- user should be able to pass paramaters config.yaml, nova password, db password, and that's all.
+
+0) provide optional time parameters to allow graph generation based on a time window
+
+0) code scenario for booting 100s of nodes sequentially, using single thread one connection.
+
+
+0) code scenario - test network latency and speed between nodes in different az's
+0) code scenario - test network latency and speed between nodes in same az, on local nat addy
 
 
 ##################################################################
 ####### CLOUD MOOD TODO - SOON:
 ##################################################################
 
-0) fix up config.yaml template for environment, tests, throttle, and server (import - convert to data structure - run)
-    -- user should be able to pass paramaters config.yaml, nova password, db password, and that's all.
+
+0) only cleanup test environment if there was a hard error
 
 0) Move configs and config structs into config directory
 
 0) make main entry take a config file and a password - then run the test based on that config file.
     -- this will make it easy to stamp out several reusable config templates
 
-0) create timeout decorated funcs for PING, SSH, NOVA LIST, that will self destruct it appears to hang.
+0) create timeout decorated funcs for PING, SSH, NOVA LIST, that will self destruct if it appears to hang.
     -- These commands should not hang! If they do, kill them ASAP, throw error, let retry logic kick in.
 
 0) db queries calculate percentiles - insert variable integer into LIMIT query - by using string.format
@@ -29,13 +55,10 @@
 0) Need a better algorithm to get pre-provisioned floating IPs - to resolve continuous orphaning of IPs when failures occur
     -- currently pools no worky with either bravo or prod
 
-0) fix the damn error code normalization!!! need all error codes from openstack.
+0) fix the damn error code normalization!!! find all error codes from openstack.
 
-0) print SQL query - stats breakdown at end of run in text output
 
 0) test out using python chart creation to generate graphs - then display them with jenkins html publish
-
-0) code up scenario for booting 100s of nodes sequentially
 
 0) log all the nova request parameters with the action, in test_results_granular - could help debug errors
 
@@ -84,7 +107,7 @@ you could track the number of successful calls without limiting and bump up spee
 0) provide web page that shows charts with selectors and switches to shape the charts (datadog like)
 
 0) attach floating ip should verify that it is attached
-0) create metric data structure
+0) DONE - create metric data structure
 0) get some graphs generating asap
 
 0) scrape the nova console-log to see if the networking failed or what?
