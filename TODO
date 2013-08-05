@@ -12,11 +12,12 @@
 
 0) INPROGRESS - TONIGHT - generate graphs with pygal
 
+0) trap quota errors - log them as soft - if you run out of floating ips, try and alert on this
 
 0) DONE - try a no_error cleanup phase in finally - to keep IPs from getting orphaned
 0) IGNORE - stuff floating ip and test-id/instance-id in database table. maybe? maybe not?
 
-
+0) provide switch to disable logging to database
 
 0) trace and step through python call to attach floating ip to server
     -- is there a bug in the python-novaclient code?

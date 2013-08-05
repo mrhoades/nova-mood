@@ -49,8 +49,6 @@ group by tp.region, t.concurrency_count
 order by tp.environ_name, t.concurrency_count;
 
 
-
-
 -- avg'z by region
 select count(*) as total_booted,
   tp.environ_name,
@@ -65,7 +63,7 @@ select count(*) as total_booted,
   SUM(t.soft_error_count) as soft_error_count
 from test_results as t
 left join test_passes as tp on tp.test_pass_id = t.test_pass_id
-where tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+where tp.time_started > DATE_SUB(NOW(), INTERVAL 3 day)
 group by tp.region
 order by tp.environ_name;
 
@@ -84,6 +82,19 @@ where error_type != ''
 and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
 group by trg.function_name, trg.error_type
 order by func_error_count desc;
+
+
+-- error count for funcs in given envs
+select count(*) as func_error_count,
+  tp.environ_name,
+  trg.error_type
+from test_results as tr
+left join test_results_granular as trg on tr.test_id = trg.test_id
+left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+where error_type != ''
+and tp.time_started > DATE_SUB(NOW(), INTERVAL 3 day)
+group by tp.environ_name, trg.error_type
+order by environ_name, func_error_count desc;
 
 
 -- error count for funcs in given envs
