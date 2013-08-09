@@ -79,8 +79,8 @@ retry_expo_backoff:
 timeouts:
   job: 36000
   parent_test: 3600
-  test: 600
+  test: 1200
   cleanup_env_thread: 360
   wait_for_active: 240
-  ping_instance: 180
+  ping_instance: 600
   ssh_instance: 240
