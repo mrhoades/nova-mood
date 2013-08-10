@@ -468,6 +468,17 @@ class NovaServiceTest(object):
         return self.nova.floating_ips.list()
 
     @nova_collector(bool_sync=nova_throttle.bool_sync_requests, throttle=nova_throttle.floating_ip_list)
+    def floating_ips_get_unattached_list(self):
+        """ Returns list of unattached ips - at this moment - note, attach could be underway on an ip """
+        unattached_ip_list = []
+
+        for float_ip in self.floating_ips_get_list():
+            if float_ip.instance_id is None:
+                unattached_ip_list.append(float_ip)
+
+        return unattached_ip_list
+
+    @nova_collector(bool_sync=nova_throttle.bool_sync_requests, throttle=nova_throttle.floating_ip_list)
     def floating_ip_get_id(self, floating_ip):
         for fip in self.nova.floating_ips.list():
             if fip.ip == floating_ip:
@@ -792,3 +803,30 @@ class NovaServiceTest(object):
         for floating_ip in self.floating_ips_get_list():
             if floating_ip.ip not in ignore_ip_list:
                 self.floating_ip_delete(floating_ip)
+
+    def delete_orphaned_floating_ips(self, ignore_ip_list=''):
+
+        """
+        deletes all the floating ips that appear orphaned
+
+        get a list X of unattached ips at this time
+        wait for a few minutes
+        get a list Y of unattached ips at this time
+        orphaned ips are likely the intersection of the two lists
+
+        """
+
+        ip_object_list_now = self.floating_ips_get_unattached_list()
+        ip_list_now = [o.ip for o in ip_object_list_now]
+
+        sleep(120)
+
+        ip_object_list_later = self.floating_ips_get_unattached_list()
+        ip_list_later = [o.ip for o in ip_object_list_later]
+
+        orphaned_ips = set(ip_list_now).intersection(set(ip_list_later))
+        orphaned_ip_objects = [o for o in ip_object_list_later if o.ip in orphaned_ips and o.ip not in ignore_ip_list]
+
+        for floating_ip in orphaned_ip_objects:
+            self.floating_ip_delete(floating_ip)
+            pass
