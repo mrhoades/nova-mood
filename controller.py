@@ -37,7 +37,7 @@ def main():
     pass
 
     # cleanup_nova_test_env(env)
-    # cleanup_all_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
+    cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
     create_perf_metric_security_group(env)
     nova_boot_scaling(env)
 
@@ -131,7 +131,7 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
     # rps = stats_queries.get_rps_for_environment(env.env_name, 1)
     # print 'RPS: ' + str(rps)
 
-    nova, server = None, None
+    nova, server, bool_error = None, None, False
 
     try:
 
@@ -181,6 +181,7 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
         nova.wait_for_deletion(server.id)
 
     except Exception as e:
+        bool_error = True
         msg = 'ERROR IN TEST: {0} {1} {2}'.format('test_nova_boot', instance_name, e.message)
         logger.info(msg)
         print msg
@@ -197,9 +198,10 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
         test_stats = env.test_case_stats[instance_name]
         nova_mood_db.insert_test_results(test_stats)
 
-        cleanup_server_safely(nova, server)
-        if env.nova_assign_floating_ip:
-            cleanup_floating_ip_safely(nova, server)
+        if bool_error:
+            cleanup_server_safely(nova, server)
+            if env.nova_assign_floating_ip:
+                cleanup_floating_ip_safely(nova, server)
 
 
 def test_global_lock_speed(name, global_lock):
@@ -325,6 +327,40 @@ def cleanup_all_float_ip_in_test_env(env, ignore_ip_list=None):
         print 'Cleanup complete!'
     except Exception as e:
         logger.info('ERROR IN TEST: cleanup_nova_test_env for parent job '.format(e))
+
+
+
+@timeout(200)
+def cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list=None):
+    logger.info('Cleanup orphaned floating-ips in environment: {0}'.format(env.test_name))
+
+    try:
+        nova = NovaServiceTest(lock=global_lock,
+                               username=env.username,
+                               password=env.password,
+                               tenant_name=env.tenant_name,
+                               project_id=env.project_id,
+                               auth_url=env.auth_url,
+                               region=env.region,
+                               keypair=env.key_name,
+                               auth_ver=env.auth_ver,
+                               count=env.instance_count,
+                               instance_name=env.instance_name,
+                               test_name=env.test_name,
+                               timeout=env.timeout_minutes,
+                               availability_zone=env.availability_zone,
+                               action_sleep_interval=env.action_sleep_interval)
+
+        nova.connect()
+
+        nova.delete_orphaned_floating_ips(ignore_ip_list)
+
+        print 'Sleep for 10 seconds and wait for deletions to clear out.'
+        sleep(10)  # wait for test deletions to clear out
+        print 'Cleanup complete!'
+    except Exception as e:
+        logger.info('ERROR IN TEST: cleanup_nova_test_env for parent job '.format(e))
+
 
 
 @timeout(timeouts.cleanup_env_thread)
