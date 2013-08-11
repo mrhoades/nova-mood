@@ -330,7 +330,7 @@ def cleanup_all_float_ip_in_test_env(env, ignore_ip_list=None):
 
 
 
-@timeout(200)
+@timeout(300)
 def cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list=None):
     logger.info('Cleanup orphaned floating-ips in environment: {0}'.format(env.test_name))
 
@@ -359,7 +359,7 @@ def cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list=None):
         sleep(10)  # wait for test deletions to clear out
         print 'Cleanup complete!'
     except Exception as e:
-        logger.info('ERROR IN TEST: cleanup_nova_test_env for parent job '.format(e))
+        logger.info('ERROR IN TEST: Cleanup orphaned floating-ips '.format(e))
 
 
 
