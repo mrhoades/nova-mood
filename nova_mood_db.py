@@ -1,6 +1,7 @@
 from datetime import datetime
 from random import randint
 from datetime import timedelta
+from prettytable import from_db_cursor
 
 import MySQLdb
 
@@ -108,7 +109,7 @@ def print_query(cursor, query):
         print str(row)
 
 
-def exec_query(query):
+def exec_query(query, bool_return_prettytable=False):
 
     conn = get_mysql_connection()
     cur = conn.cursor()
@@ -117,7 +118,12 @@ def exec_query(query):
         with conn:
             cur.execute("USE {0};".format(db_name))
             cur.execute(query)
-            results = cur.fetchall()
+
+            if bool_return_prettytable:
+                results = from_db_cursor(cur)
+            else:
+                results = cur.fetchall()
+
             return results
     except Exception as err:
         print(str(err))
