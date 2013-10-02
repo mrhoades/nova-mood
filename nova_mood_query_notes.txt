@@ -8,12 +8,145 @@ select * from test_results where test_pass_id=10;
 select * from test_results where concurrency_count=21;
 
 select * from test_results order by test_id desc;
-select * from  test_results_granular order by test_id desc;
+select * from  test_results_granular where error_type != '' order by test_id desc;
+
+
+select * from test_results_granular where error_text like '%Permission denied (publickey)%';
+select * from test_results_granular where error_text like '%Test timed out%';
+
+-- error count for funcs in given envs
+select count(*) as func_error_count,
+  tp.environ_name,
+  tp.region,
+  tp.zone,
+  trg.error_type,
+  trg.error_text
+from test_results as tr
+left join test_results_granular as trg on tr.test_id = trg.test_id
+left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+where error_type != ''
+      and tp.environ_name = 'bravo'
+      and tp.time_started > DATE_SUB(NOW(), INTERVAL 20 day)
+group by tp.region, tp.zone, trg.error_type
+order by func_error_count desc;
+
+
+-- count failure rate by env by day
+select DATE_FORMAT(t.time_started, '%m-%d-%y') as my_date,
+  tp.environ_name,
+  tp.zone,
+  count(*) as total_tests,
+  SUM(hard_errors_exist) as total_failures,
+  AVG(t.hard_errors_exist) as failure_rate
+from test_results as t
+join test_passes as tp on tp.test_pass_id = t.test_pass_id
+where tp.environ_name = 'bravo'
+ and tp.time_started > DATE_SUB(NOW(), INTERVAL 45 day)
+group by my_date, tp.zone
+order by my_date desc;
+
+
+-- avg'z by region and zone
+select count(*) as total_booted,
+  tp.environ_name,
+  tp.region,
+  tp.zone,
+  tp.cloud_account_username,
+  t.concurrency_count,
+  AVG(NULLIF(t.time_total,0)) as avg_time_total,
+  AVG(NULLIF(t.time_to_active,0)) as avg_time_to_active,
+  AVG(NULLIF(t.time_to_ping,0)) as avg_time_to_ping,
+  AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
+  AVG(t.hard_errors_exist) as pct_error,
+  SUM(t.hard_error_count) as hard_error_count,
+  SUM(t.soft_error_count) as soft_error_count
+from test_results as t
+left join test_passes as tp on tp.test_pass_id = t.test_pass_id
+where tp.time_started > DATE_SUB(NOW(), INTERVAL 20 day)
+group by tp.region, tp.zone, t.concurrency_count
+order by tp.environ_name, tp.zone, t.concurrency_count;
+
+
+
+-- avg'z by region and concurrency count
+select count(*) as total_booted,
+  tp.environ_name,
+  tp.region,
+  tp.cloud_account_username,
+  t.concurrency_count,
+  AVG(NULLIF(t.time_total,0)) as avg_time_total,
+  AVG(NULLIF(t.time_to_active,0)) as avg_time_to_active,
+  AVG(NULLIF(t.time_to_ping,0)) as avg_time_to_ping,
+  AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
+  AVG(t.hard_errors_exist) as pct_error,
+  SUM(t.hard_error_count) as hard_error_count,
+  SUM(t.soft_error_count) as soft_error_count
+from test_results as t
+left join test_passes as tp on tp.test_pass_id = t.test_pass_id
+where tp.time_started > DATE_SUB(NOW(), INTERVAL 10 day)
+group by tp.region, t.concurrency_count
+order by tp.environ_name, t.concurrency_count;
+
+
+
+
+
+-- scrub data - fix code later
+update test_passes set environ_name = 'bravo' where region = 'region-b.geo-1';
+
+update test_results_granular set error_type = 'The server has either erred or is incapable of performing the requested operation. (HTTP 500)'
+where error_text like '%The server has either erred or is incapable of performing the requested operation. (HTTP 500)%';
+
+update test_results_granular set error_type = 'SSH Failed: Permission denied (publickey)'
+where error_text like '%Permission denied (publickey)%';
+
+update test_results_granular set error_type = '(HTTP 413) Instance quota exceeded'
+where error_text like '%Instance quota exceeded%';
+
+update test_results_granular set error_type = '(HTTP 404) Resource Not Found'
+where error_text like '%The resource could not be found. (HTTP 404)%'
+or error_text like '%Instance could not be found (HTTP 404)%';
+
+update test_results_granular set error_type = 'Test timed out'
+where error_text like '%Test timed out%';
+
+update test_results set hard_errors_exist = 0 where hard_error_count = 0;
+
+
+-- error count for funcs in given envs
+select count(*) as func_error_count,
+  tp.environ_name,
+  trg.error_type,
+  trg.error_text
+from test_results as tr
+left join test_results_granular as trg on tr.test_id = trg.test_id
+left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+where error_type != ''
+group by tp.environ_name, trg.error_type
+order by func_error_count desc;
+
+
 
 
 -- result cleaning
 update test_passes set environ_name = 'bravo' where environ_name = '';
 
+
+-- count using group by partial date
+select DATE_FORMAT(time_started, '%m-%d-%y') as my_date, count(*)
+from test_results
+group by my_date;
+
+
+
+-- count tests run each day against an environment
+select DATE_FORMAT(t.time_started, '%m-%d-%y') as my_date,
+  tp.environ_name,
+  count(*) as total_tests
+from test_results as t
+join test_passes as tp on tp.test_pass_id = t.test_pass_id
+group by tp.environ_name, my_date
+order by my_date;
 
 
 -- max ssh wait (so you know to set the timeout +60 seconds above this)
@@ -31,7 +164,6 @@ order by test_id desc;
 -- avg'z by region and concurrency count
 select count(*) as total_booted,
   tp.environ_name,
-  tp.execution_hostname,
   tp.region,
   tp.cloud_account_username,
   t.concurrency_count,
@@ -44,28 +176,12 @@ select count(*) as total_booted,
   SUM(t.soft_error_count) as soft_error_count
 from test_results as t
 left join test_passes as tp on tp.test_pass_id = t.test_pass_id
-where tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+where tp.time_started > DATE_SUB(NOW(), INTERVAL 20 day)
 group by tp.region, t.concurrency_count
 order by tp.environ_name, t.concurrency_count;
 
 
--- avg'z by region
-select count(*) as total_booted,
-  tp.environ_name,
-  tp.region,
-  tp.cloud_account_username,
-  AVG(NULLIF(t.time_total,0)) as avg_time_total,
-  AVG(NULLIF(t.time_to_active,0)) as avg_time_to_active,
-  AVG(NULLIF(t.time_to_ping,0)) as avg_time_to_ping,
-  AVG(NULLIF(t.time_to_ssh,0)) as avg_time_to_ssh,
-  AVG(t.hard_errors_exist) as pct_error,
-  SUM(t.hard_error_count) as hard_error_count,
-  SUM(t.soft_error_count) as soft_error_count
-from test_results as t
-left join test_passes as tp on tp.test_pass_id = t.test_pass_id
-where tp.time_started > DATE_SUB(NOW(), INTERVAL 3 day)
-group by tp.region
-order by tp.environ_name;
+
 
 
 
@@ -82,19 +198,6 @@ where error_type != ''
 and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
 group by trg.function_name, trg.error_type
 order by func_error_count desc;
-
-
--- error count for funcs in given envs
-select count(*) as func_error_count,
-  tp.environ_name,
-  trg.error_type
-from test_results as tr
-left join test_results_granular as trg on tr.test_id = trg.test_id
-left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
-where error_type != ''
-and tp.time_started > DATE_SUB(NOW(), INTERVAL 3 day)
-group by tp.environ_name, trg.error_type
-order by environ_name, func_error_count desc;
 
 
 -- error count for funcs in given envs
@@ -158,9 +261,7 @@ group by trg.error_type
 order by func_error_count desc;
 
 
-update test_results set hard_errors_exist = 0 where hard_error_count = 0
-
-
+update test_results set hard_errors_exist = 0 where hard_error_count = 0;
 
 
 
@@ -197,7 +298,7 @@ select * from test_results_granular order by test_id desc, time_started asc;
 
 
 -- count using group by partial date
-select DATE_FORMAT(time_started, '%d-%m-%y') as my_date, count(*)
+select DATE_FORMAT(time_started, '%m-%d-%y') as my_date, count(*)
 from test_results
 group by my_date;
 
