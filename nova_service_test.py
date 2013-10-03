@@ -819,6 +819,9 @@ class NovaServiceTest(object):
         ip_object_list_now = self.floating_ips_get_unattached_list()
         ip_list_now = [o.ip for o in ip_object_list_now]
 
+        if len(ip_list_now) == 0:  # return if nothing to clean
+            return
+
         sleep(120)
 
         ip_object_list_later = self.floating_ips_get_unattached_list()
