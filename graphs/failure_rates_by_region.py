@@ -27,8 +27,30 @@ def failure_rates_by_zone(bool_prettytable=False):
       AVG(t.hard_errors_exist) as failure_rate
     from test_results as t
     join test_passes as tp on tp.test_pass_id = t.test_pass_id
+     and tp.time_started > DATE_SUB(NOW(), INTERVAL 90 day)
+    group by my_date, tp.zone
+    order by my_date;
+    """
+
+    result = nova_mood_db.exec_query(sql_query, bool_prettytable)
+
+    return result
+
+
+def failure_types_by_region(bool_prettytable=False):
+    """ get failure counts, rate, grouped by day, for each zone """
+
+    sql_query = """
+    select DATE_FORMAT(t.time_started, '%m-%d-%Y') as my_date,
+      tp.environ_name,
+      tp.zone,
+      count(*) as total_tests,
+      SUM(hard_errors_exist) as total_failures,
+      AVG(t.hard_errors_exist) as failure_rate
+    from test_results as t
+    join test_passes as tp on tp.test_pass_id = t.test_pass_id
     where tp.environ_name = 'bravo'
-     and tp.time_started > DATE_SUB(NOW(), INTERVAL 40 day)
+     and tp.time_started > DATE_SUB(NOW(), INTERVAL 90 day)
     group by my_date, tp.zone
     order by my_date;
     """
@@ -42,22 +64,12 @@ sql_result_data = failure_rates_by_zone(bool_prettytable=True)
 
 print sql_result_data
 
-
 sql_result_data = failure_rates_by_zone()
-
-# plot_data = []
-#
-# # get labels
-# date_labels = list(set(x[0] for x in sql_result_data))
-# zone_labels = set(x[2] for x in sql_result_data)
-#
-#
-# # sort the date labels
-# date_labels.sort(key=lambda x: datetime.strptime(x, '%m-%d-%Y'))
 
 az1_data = []
 az2_data = []
 az3_data = []
+prod1_az2_data = []
 
 for index, row in enumerate(sql_result_data):
 
@@ -69,26 +81,35 @@ for index, row in enumerate(sql_result_data):
         az2_data.append([date_object, int(row[5] * 100)])
     elif row[1] == 'bravo' and row[2] == 'az3':
         az3_data.append([date_object, int(row[5] * 100)])
+    elif row[1] == 'prod_1.0' and row[2] == 'az-2':
+        prod1_az2_data.append([date_object, int(row[5] * 100)])
+
 
 from pygal.style import NeonStyle
 chart = pygal.DateY(style=NeonStyle,
-                    tooltip_border_radius=10,
-                    width=800,
-                    height=600,
-                    x_label_rotation=45,
-                    y_label_rotation=30,
+                    width=1024,
+                    height=768,
+                    x_label_rotation=90,
                     truncate_label=12,
-                    show_dots=True,
-                    dots_size=1)
+                    show_dots=False)
 
-chart.title = 'Bravo Failure Rate by Zone'
+# chart = pygal.DateY(style=NeonStyle,
+#                     tooltip_border_radius=4,
+#                     tooltip_font_size=12,
+#                     width=1024,
+#                     height=768,
+#                     x_label_rotation=90,
+#                     y_label_rotation=10,
+#                     truncate_label=12,
+#                     show_dots=False,
+#                     dots_size=1)
+
+chart.title = 'US East - Failure Rate by Zone - Last 90 Days'
+
 chart.add('useast-az1', az1_data)
-chart.add('useast-az3', az2_data)
+chart.add('useast-az2', az2_data)
 chart.add('useast-az3', az3_data)
-chart.render_to_file('line_chart.svg')
-chart.render_to_png('line_chart.png')
+# chart.add('uswest-az2', prod1_az2_data)
 
-
-
-
-
+chart.render_to_file('us-east-failure-rate.svg')
+chart.render_to_png('us-east-failure-rate.png')
