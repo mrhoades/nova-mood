@@ -1,5 +1,6 @@
 import sys
-sys.path.append("..")
+import os.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
 import nova_mood_db
 
@@ -94,4 +95,3 @@ print '*** Bravo West AW2-2 Failure By Zone and Concurrency Count ***'
 print '*****************************************************************'
 sql_result_data = failure_rates_by_zone_and_concurrency(bool_prettytable=True)
 print sql_result_data
-
