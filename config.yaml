@@ -5,6 +5,7 @@ boot_test_settings:
   test_name: 'nova-boot-scaling'          # nodes will be booted with name <test_name><counter><guid>
   environ_name: 'bravo'                   # environ name will be used for stats grouping (bravo, dbaas, grizzle)
   assign_floating_ip: True                # accounts must have available float-ip quota to use this
+  cleanup_orphaned_floating_ips: True     # floating ips that sit unused and unattached for 120 seconds will be deleted
 
 # Nova Connection Info
 nova_auth:
