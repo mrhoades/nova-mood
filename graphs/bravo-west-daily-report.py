@@ -79,6 +79,33 @@ def failure_type_counts_by_nova_call_concurrency(bool_prettytable=False):
     return result
 
 
+def failure_type_by_hour_last_seven_days(bool_prettytable=False):
+    """ failure type by hour - last seven days """
+
+    sql_query = """
+    -- failure type by hour last seven days
+    select DATE_FORMAT(tr.time_started, '%m-%d-%Y-%H') as my_date, count(*) as error_count,
+      #tp.environ_name,
+      trg.function_name,
+      tr.concurrency_count,
+      trg.error_type
+    from test_results as tr
+    left join test_results_granular as trg on tr.test_id = trg.test_id
+    left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+    where tr.concurrency_count > 1
+      and tp.environ_name = 'bravo-AW2-2'
+      and trg.error_type != ''
+      and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+      and trg.error_type != '(HTTP 404) Resource Not Found'
+      and trg.error_type not like '%unsupported operand type(s) for%'
+    group by my_date, trg.error_type
+    order by my_date desc, error_count desc;
+
+    """
+
+    result = nova_mood_db.exec_query(sql_query, bool_prettytable)
+
+    return result
 
 
 def failure_rates_by_zone_and_concurrency(bool_prettytable=False):
@@ -113,15 +140,18 @@ print '*********************************************************'
 sql_result_data = failure_rates_by_zone(bool_prettytable=True)
 print sql_result_data
 
+print ''
 print '*******************************************************************************'
-print '*** Bravo West AW2-2 Failure Type Counts - By Method and Concurrency Count***'
+print '*** Failure Counts - 7 Da7 - By Hour Method and Concurrency Count***'
 print '*******************************************************************************'
-sql_result_data = failure_type_counts_by_nova_call_concurrency(bool_prettytable=True)
+sql_result_data = failure_type_by_hour_last_seven_days(bool_prettytable=True)
 print sql_result_data
 
-
+print ''
 print '*****************************************************************'
 print '*** Bravo West AW2-2 Failure By Zone and Concurrency Count ***'
 print '*****************************************************************'
 sql_result_data = failure_rates_by_zone_and_concurrency(bool_prettytable=True)
 print sql_result_data
+
+
