@@ -40,7 +40,7 @@ def failure_type_counts(bool_prettytable=False):
         left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
         where error_type != ''
               and tp.environ_name = 'bravo-AW2-2'
-              and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+              and tp.time_started > DATE_SUB(NOW(), INTERVAL 90 day)
               and trg.error_type != '(HTTP 404) Resource Not Found'
               and trg.error_type not like '%unsupported operand type(s) for%'
         group by tp.environ_name, trg.error_type
@@ -50,6 +50,35 @@ def failure_type_counts(bool_prettytable=False):
     result = nova_mood_db.exec_query(sql_query, bool_prettytable)
 
     return result
+
+
+def failure_type_counts_by_nova_call_concurrency(bool_prettytable=False):
+    """ get failure counts, """
+
+    sql_query = """
+        select count(*) as error_count,
+          #tp.environ_name,
+          trg.function_name,
+          tr.concurrency_count,
+          trg.error_type
+        from test_results as tr
+        left join test_results_granular as trg on tr.test_id = trg.test_id
+        left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+        where tr.concurrency_count > 1
+          and tp.environ_name = 'bravo-AW2-2'
+          and trg.error_type != ''
+          and tp.time_started > DATE_SUB(NOW(), INTERVAL 90 day)
+          and trg.error_type != '(HTTP 404) Resource Not Found'
+          and trg.error_type not like '%unsupported operand type(s) for%'
+        group by tr.concurrency_count, trg.function_name, trg.error_type
+        order by error_count desc
+    """
+
+    result = nova_mood_db.exec_query(sql_query, bool_prettytable)
+
+    return result
+
+
 
 
 def failure_rates_by_zone_and_concurrency(bool_prettytable=False):
@@ -84,11 +113,12 @@ print '*********************************************************'
 sql_result_data = failure_rates_by_zone(bool_prettytable=True)
 print sql_result_data
 
-print '*********************************************'
-print '*** Bravo West AW2-2 Failure Type Counts ***'
-print '*********************************************'
-sql_result_data = failure_type_counts(bool_prettytable=True)
+print '*******************************************************************************'
+print '*** Bravo West AW2-2 Failure Type Counts - By Method and Concurrency Count***'
+print '*******************************************************************************'
+sql_result_data = failure_type_counts_by_nova_call_concurrency(bool_prettytable=True)
 print sql_result_data
+
 
 print '*****************************************************************'
 print '*** Bravo West AW2-2 Failure By Zone and Concurrency Count ***'
