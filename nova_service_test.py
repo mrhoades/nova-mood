@@ -176,6 +176,7 @@ class NovaServiceTest(object):
                  instance_name='',
                  test_name='',
                  timeout=20,
+                 nova_request_timeout=60,
                  availability_zone='',
                  action_sleep_interval=1,
                  nova_assign_floating_ip=False,
@@ -192,6 +193,7 @@ class NovaServiceTest(object):
         self.auth_url = auth_url
         self.region = region
         self.keypair = keypair
+        self.nova_request_timeout = nova_request_timeout
         self.security_group = security_group
         self.auth_ver = auth_ver
         self.count = count
@@ -247,7 +249,7 @@ class NovaServiceTest(object):
                                   project_id=self.tenant_name,
                                   auth_url=self.auth_url,
                                   region_name=self.region,
-                                  service_type="compute")
+                                  timeout=self.nova_request_timeout)
 
     def rate_limit_buster_warmup(self, iterations):
         """ Nova (and or some tool in between) tracks how many requests have been made in the last x seconds,
@@ -659,7 +661,6 @@ class NovaServiceTest(object):
     @nova_collector(tries=5, delay=3, back_off=4, throttle=nova_throttle.get_server_info)
     def nova_show_server(self, server_id):
         return self.nova.servers.get(server_id)
-
     @nova_collector(tries=1, bool_sync=False, throttle=0)
     def nova_show_server_no_retry(self, server_id):
         return self.nova.servers.get(server_id)
