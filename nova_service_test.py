@@ -249,6 +249,7 @@ class NovaServiceTest(object):
                                   project_id=self.tenant_name,
                                   auth_url=self.auth_url,
                                   region_name=self.region,
+                                  service_type="compute",
                                   timeout=self.nova_request_timeout)
 
     def rate_limit_buster_warmup(self, iterations):
