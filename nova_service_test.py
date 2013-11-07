@@ -14,6 +14,7 @@ from functools import wraps
 from time import sleep
 from collections import Iterable
 from novaclient.v1_1 import client
+from troveclient.v1 import client as trove
 from structs.throttle import Throttle
 from structs.server import Server
 from structs.object_with_id import Object
@@ -205,6 +206,7 @@ class NovaServiceTest(object):
         self.action_sleep_interval = action_sleep_interval
         self.nova_assign_floating_ip = nova_assign_floating_ip
         self.nova = None
+        self.trove = None
         self.server = {}
         self.servers = []
         self.floating_ips = []
@@ -251,6 +253,21 @@ class NovaServiceTest(object):
                                   region_name=self.region,
                                   service_type="compute",
                                   timeout=self.nova_request_timeout)
+
+    @nova_collector(throttle=nova_throttle.connect)
+    def connect_trove(self, force=False):
+        """If we haven't already created a nova client, create one."""
+        if self.trove and not force:
+            return
+
+        logger.info('Connect to TROVE with HP Cloud User Account: ' + self.username)
+
+        self.trove = trove.Client(username=self.username,
+                                  password=self.password,
+                                  project_id=self.tenant_name,
+                                  auth_url=self.auth_url,
+                                  region_name=self.region,
+                                  service_type="database")
 
     def rate_limit_buster_warmup(self, iterations):
         """ Nova (and or some tool in between) tracks how many requests have been made in the last x seconds,

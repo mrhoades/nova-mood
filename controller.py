@@ -17,6 +17,7 @@ from structs.nova_mood_timouts import NovaMoodTimeouts
 from structs.boot_scaling import BootScaling
 from structs.throttle import Throttle
 from nova_service_test import NovaServiceTest
+from troveclient import utils
 
 logging.basicConfig(format='%(asctime)s\t%(name)-16s %(levelname)-8s %(message)s')
 logger = logging.getLogger('controller')
@@ -37,10 +38,14 @@ def main():
     env = parse_args(env)           # fill with args data
     pass
 
-    # cleanup_nova_test_env(env)
+    cleanup_nova_test_env(env)
     cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
     create_perf_metric_security_group(env)
     nova_boot_scaling(env)
+
+    # bugbugbug - test that are to be run should be defined in yaml or passed in somehow
+    # bugbugbug - half baked trove scaling
+    # test_trove_create_concurrently(env, 1)
 
 
 @timeout(timeouts.parent_test)
@@ -203,6 +208,165 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
             cleanup_server_safely(nova, server)
             if env.nova_assign_floating_ip:
                 cleanup_floating_ip_safely(nova, server)
+
+
+@timeout(timeouts.test)
+def test_trove_create_concurrently(env, instance_count, pool_workers=None):
+
+    # bugbugbug - hack in fake shit... so this will run
+    env.test_pass_id = 50000
+
+    logger.info('BEGIN: test_trove_create_concurrently {0} instances'.format(instance_count))
+
+    test_list = []
+    test_results = []
+
+    if pool_workers is None or pool_workers == -1:
+        pool_workers = instance_count
+    pool = multiprocessing.Pool(processes=pool_workers)
+
+    # run asynchronous tests
+    for i in range(instance_count):
+
+        instance_name = generate_rand_instance_name(env.test_name + str(i))
+
+        test_stats = NovaTestStats(test_name='test_trove_create',
+                                   environ_name=env.env_name,
+                                   zone=env.availability_zone,
+                                   region=env.region,
+                                   execution_host=env.execution_hostname,
+                                   cloud_account_username=env.username,
+                                   test_pass_id=env.test_pass_id,
+                                   concurrency_count=instance_count)
+        env.test_case_stats[instance_name] = test_stats
+
+        # TODO bugbugbug - make this generic so you can execute any test - move tests out of controller
+        test_result = pool.apply_async(eval('test_trove_create'), args=(instance_name, env, global_lock, throttle))
+        test_list.append(test_result)
+    pool.close()
+    pool.join()
+
+    while len(test_list) > 0:
+        try:
+            test_results.append(test_list[0].get(timeout=10))
+            test_list.pop(0)
+        except None:
+            print 'err.. no.. yo..'
+
+    logger.info('COMPLETE: test_nova_boot_concurrently {0} instances'.format(instance_count))
+
+
+def test_trove_create(instance_name, env, global_lock, throttle):
+    logger.info('BEGIN TEST: test_trove_create {0}'.format(instance_name))
+
+    nova, server, bool_error = None, None, False
+
+    try:
+
+        nova = NovaServiceTest(throttle_in=throttle,
+                               lock=global_lock,
+                               username=env.username,
+                               password=env.password,
+                               tenant_name=env.tenant_name,
+                               project_id=env.project_id,
+                               auth_url=env.auth_url,
+                               region=env.region,
+                               keypair=env.key_name,
+                               security_group=env.security_group,
+                               auth_ver=env.auth_ver,
+                               count=env.instance_count,
+                               instance_name=env.instance_name,
+                               test_name=env.test_name,
+                               timeout=env.timeout_minutes,
+                               availability_zone=env.availability_zone,
+                               action_sleep_interval=env.action_sleep_interval,
+                               nova_assign_floating_ip=env.nova_assign_floating_ip,
+                               flavor=env.flavor_object,
+                               image=env.image_object,
+                               stats=env.test_case_stats[instance_name])
+
+        nova.connect_trove()
+
+        # create a new trove db instance
+        # wait for active status
+        # get the fuckin root password
+        # create a database on the instance
+
+        # print all the database instances
+        # utils.print_list(nova.trove.instances.list(), ['id', 'name', 'status', 'flavor_id', 'size'])
+
+
+        # create a new trove db instance
+        db_instance = nova.trove.instances.create(name=instance_name, flavor_id=1001)
+        print db_instance
+        print db_instance.id
+        print db_instance.name
+        print db_instance.status  # bullshit - its not fuckin active
+
+        # wait for active status
+        build_status = None
+        while build_status != "ACTIVE":
+            #bugbugbug - need timeout here
+            sleep(10)
+            db_instance = nova.trove.instances.get(db_instance)
+            build_status = db_instance.status
+            print 'DB BUILD STATUS now: ' + build_status
+
+        print db_instance
+        print db_instance.id
+        print db_instance.name
+        print db_instance.status
+        print db_instance.ip[0]
+        print db_instance.ip[1]
+
+        # get the fuckin password
+        password = nova.trove.root.create(db_instance.id)
+        print password[1]
+        nova.trove.users.update_attributes(db_instance.id, 'root', newuserattr={"password": "rnetpa55"})
+
+        # create a database named "test" on the instance
+        new_empty_db = nova.trove.databases.create(db_instance.id, [{"name": "test"}])
+        print new_empty_db
+
+        # initialize a schema
+        import MySQLdb
+
+        db_name = 'test'
+        db_root_user = 'root'
+        db_password = 'rnetpa55'
+        db_hostname_or_ip = db_instance.ip[1]
+
+
+        # run sysbench utlity
+
+        # print results
+
+        # delete the database
+        nova.trove.instances.delete(db_instance)
+
+        # wait for deletion
+        pass
+
+    except Exception as e:
+        bool_error = True
+        msg = 'ERROR IN TEST: {0} {1} {2}'.format('test_trove_create', instance_name, e.message)
+        logger.info(msg)
+        print msg
+
+        # TODO bugbugbug - make sure this error is in the stats logging (timeout - likely)
+
+    finally:
+
+        # env.test_case_stats[instance_name].ended()
+        logger.info('COMPLETED: test_trove_create {0}'.format(instance_name))
+        #
+        # test_stats = env.test_case_stats[instance_name]
+        # nova_mood_db.insert_test_results(test_stats)
+        #
+        # if bool_error:
+        #     cleanup_server_safely(nova, server)
+        #     if env.nova_assign_floating_ip:
+        #         cleanup_floating_ip_safely(nova, server)
 
 
 def test_global_lock_speed(name, global_lock):
