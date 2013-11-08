@@ -1,8 +1,7 @@
-
 #!/bin/bash
 
 config_file=$1
-output_base="/mnt/benchmark_results"
+output_base="/home/matty/benchmark_results"
 sysbench_basedir="/opt/sysbench"
 tpcc_mysql_basedir="/opt/tpcc-mysql"
 
@@ -121,7 +120,7 @@ function check_config() {
 }
 
 function sanity_checks() {
-  check_user
+  # check_user
   check_config
 
   if [ ! -d ${output_base} ]
