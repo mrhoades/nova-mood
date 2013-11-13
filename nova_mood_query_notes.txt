@@ -31,8 +31,8 @@ group by tp.region, tp.zone, trg.error_type
 order by func_error_count desc;
 
 
--- count failure rate by env by day
-select DATE_FORMAT(t.time_started, '%m-%d-%y') as my_date,
+-- failure rate by region and zone
+select DATE_FORMAT(t.time_started, '%m-%d-%Y-%I') as my_date,
   tp.environ_name,
   tp.zone,
   count(*) as total_tests,
@@ -40,9 +40,8 @@ select DATE_FORMAT(t.time_started, '%m-%d-%y') as my_date,
   AVG(t.hard_errors_exist) as failure_rate
 from test_results as t
 join test_passes as tp on tp.test_pass_id = t.test_pass_id
-where tp.environ_name = 'bravo'
- and tp.time_started > DATE_SUB(NOW(), INTERVAL 45 day)
-group by my_date, tp.zone
+ and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+group by my_date, tp.environ_name, tp.zone
 order by my_date desc;
 
 
@@ -91,7 +90,7 @@ order by tp.environ_name, t.concurrency_count;
 
 
 
--- scrub data - fix code later
+-- scrub data normalize error - fix code later
 update test_passes set environ_name = 'bravo' where region = 'region-b.geo-1';
 
 update test_results_granular set error_type = 'The server has either erred or is incapable of performing the requested operation. (HTTP 500)'

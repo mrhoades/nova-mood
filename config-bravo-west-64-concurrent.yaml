@@ -1,0 +1,87 @@
+# *** ENVIRONMENT VARS will be merged and override any matching settings ***
+
+# Nova Test Options
+boot_test_settings:
+  test_name: 'nova-boot-scaling'          # nodes will be booted with name <test_name><counter><guid>
+  environ_name: 'bravo'                   # environ name will be used for stats grouping (bravo, dbaas, grizzle)
+  assign_floating_ip: True                # accounts must have available float-ip quota to use this
+  cleanup_orphaned_floating_ips: True     # floating ips that sit unused and unattached for 120 seconds will be deleted
+
+# Nova Connection Info
+nova_auth:
+  username: 'please_set'
+  password: 'please_set'
+  tenant_name: 'please_set'
+  project_id: 'please_set'
+  api_key: 'please_set'
+  auth_url: 'please_set'
+  region: 'please_set'
+  auth_ver: 'please_set'
+  availability_zone: 'please_set'
+
+# Nova Mood Stats DB Connect Info
+nova_mood_db_auth:
+  db_hostname_or_ip: 'please_set_ip'
+  db_name: 'nova_mood'
+  db_root_user: 'root'
+  db_password: 'please_set_password'
+
+# Throttle options control the flow speed,
+# delays, and synchronicity of nova requests
+throttle:
+  default_throttle: .01
+  connect: 1
+  boot_instance: .2
+  get_flavor_object: .2
+  get_image_object: .2
+  get_server_info: 3
+  get_server_list: 3
+  poll_status: 3
+  poll_ping: 3
+  poll_ssh: 3
+  status_check_delay: 0
+  ssh_check_delay: 0
+  bool_sync_requests: False
+  bool_auto_throttle: False
+  bool_sync_float_ip: False
+  floating_ip_create: .2
+  floating_ip_attach: .2
+  floating_ip_delete: .2
+  floating_ip_list: .2
+  delete_instance: .2
+  max_rps: 1
+
+# *** settings for boot scaling tests ***
+# instance_count_seed - number of nodes to start with on first iteration
+# pool_workers - number of workers to use concurrently (if set to -1, will always match instance_count_seed)
+# multiplier - determines how fast to scale up exponentially (use 1 to ignore - multiply by 1)
+# bump_up - determines linear scale up
+# iterations - how many times to scale up
+# examples - seed 1, multiplier 2, bump_up 0, iterations 6 = 1, 2, 4, 8, 16, 32
+# examples - seed 1, multiplier 3, bump_up 0, iterations 5 = 1, 3, 9, 27, 81
+# examples - seed 10, multiplier 2, bump_up 0, iterations 4 = 10, 20, 40, 80
+# examples - seed 5, multiplier 1, bump_up 5, iterations 4 = 5, 10, 15, 20
+# examples - seed 10, workers 5, multiplier 2, bump_up 0, iterations 4 = 10, 20, 40, 80 (always worker_pool of 5)
+boot_scaling:
+  instance_count_seed: 1
+  pool_workers: -1
+  multiplier: 2
+  bump_up: 0
+  iterations: 1
+
+# when a nova request error is experienced, retry logic will capture
+# the error and retry using exponential back off timings
+retry_expo_backoff:
+  retries: 5
+  back_off: 3
+  delay: 3
+
+# timeouts for nova mood
+timeouts:
+  job: 36000
+  parent_test: 3600
+  test: 1200
+  cleanup_env_thread: 360
+  wait_for_active: 240
+  ping_instance: 600
+  ssh_instance: 240
