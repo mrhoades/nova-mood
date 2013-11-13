@@ -42,6 +42,7 @@ def failure_type_counts(bool_prettytable=False):
               and tp.environ_name = 'bravo'
               and tp.time_started > DATE_SUB(NOW(), INTERVAL 90 day)
               and trg.error_type != '(HTTP 404) Resource Not Found'
+              and trg.error_type != '(HTTP 429) Rate Limited'
               and trg.error_type not like '%unsupported operand type(s) for%'
         group by tp.environ_name, trg.error_type
         order by tp.environ_name, func_error_count desc) as error_type_counts;
@@ -69,6 +70,7 @@ def failure_type_counts_by_nova_call_concurrency(bool_prettytable=False):
           and trg.error_type != ''
           and tp.time_started > DATE_SUB(NOW(), INTERVAL 90 day)
           and trg.error_type != '(HTTP 404) Resource Not Found'
+          and trg.error_type != '(HTTP 429) Rate Limited'
           and trg.error_type not like '%unsupported operand type(s) for%'
         group by tr.concurrency_count, trg.function_name, trg.error_type
         order by error_count desc
@@ -97,6 +99,7 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
       and trg.error_type != ''
       and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
       and trg.error_type != '(HTTP 404) Resource Not Found'
+      and trg.error_type != '(HTTP 429) Rate Limited'
       and trg.error_type not like '%unsupported operand type(s) for%'
     group by my_date, trg.error_type
     order by my_date desc, error_count desc;
