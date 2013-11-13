@@ -16,15 +16,15 @@ def failure_rates_by_env(bool_prettytable=False, for_the_last_x_days=360):
         left join test_passes as tp on tp.test_pass_id = t.test_pass_id
         where tp.time_started > DATE_SUB(NOW(), INTERVAL %s day)
         group by tp.environ_name
-        order by t.concurrency_count, tp.zone;
+        order by tp.environ_name;
         """ % for_the_last_x_days
 
     result = nova_mood_db.exec_query(sql_query, bool_prettytable)
 
     print ''
-    print '*********************************************************'
+    print '**********************************'
     print '***  Failure Rates - %s Days  ***' % for_the_last_x_days
-    print '*********************************************************'
+    print '***********************************'
     print result
 
     return result
