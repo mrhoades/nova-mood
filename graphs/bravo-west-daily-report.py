@@ -101,9 +101,8 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
       and trg.error_type != '(HTTP 404) Resource Not Found'
       and trg.error_type != '(HTTP 429) Rate Limited'
       and trg.error_type not like '%unsupported operand type(s) for%'
-    group by my_date, trg.error_type
+    group by my_date, trg.error_type, tr.concurrency_count
     order by my_date desc, error_count desc;
-
     """
 
     result = nova_mood_db.exec_query(sql_query, bool_prettytable)
