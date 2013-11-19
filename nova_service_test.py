@@ -94,6 +94,10 @@ def get_error_type(error_string):
 
     if error_text == '':
         return ''
+    elif 'status is error: fault is None' in error_text:
+        return "Boot Instance Failed: Instance Status is ERROR"
+    elif 'Instance could not be found (HTTP 404) FUNC: server_delete' in error_text:
+        return "Instance could not be found (HTTP 404) - FUNC: server_delete"
     elif 'http 429' in error_text or 'rate-limited' in error_text or 'rate limit' in error_text:
         return "(HTTP 429) Rate Limited"
     elif 'http 404' in error_text and 'not found' in error_text:
