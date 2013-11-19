@@ -97,7 +97,7 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
     where tr.concurrency_count > 1
       and tp.environ_name = 'bravo-AW2-2'
       and trg.error_type != ''
-      and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+      and tp.time_started > DATE_SUB(NOW(), INTERVAL 14 day)
       and trg.error_type != '(HTTP 404) Resource Not Found'
       and trg.error_type != '(HTTP 429) Rate Limited'
       and trg.error_type not like '%unsupported operand type(s) for%'
