@@ -110,6 +110,8 @@ def get_error_type(error_string):
         return "SSH Failed: Permission denied (publickey)"
     elif 'ssh timeout' in error_text:
         return "SSH Timeout"
+    elif 'timed out' in error_text and 'wait_for_active_status ' in error_text:
+        return 'Wait for Active Status Timeout'
     elif 'ping timeout' in error_text:
         return "Ping Timeout"
     elif 'delete server timeout' in error_text:
