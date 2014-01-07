@@ -15,7 +15,10 @@ def failure_rates_by_env(bool_prettytable=False, for_the_last_x_days=360):
           AVG(t.hard_errors_exist) as pct_error
         from test_results as t
         left join test_passes as tp on tp.test_pass_id = t.test_pass_id
+        left join test_results_granular as trg on t.test_id = trg.test_id
         where tp.time_started > DATE_SUB(NOW(), INTERVAL %s day)
+            and trg.error_type != 'Address Quota Exceeded'
+            and trg.error_type != 'Instance Quota Exceeded'
         group by tp.environ_name
         order by tp.environ_name;
         """ % for_the_last_x_days
