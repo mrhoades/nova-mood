@@ -26,6 +26,7 @@ class NovaTestInfo:
                  run_rate_limit_buster=False,
                  logger=None,
                  timeout_minutes=30,
+                 nova_request_timeout=60,
                  global_lock=None,
                  global_dict=None,
                  test_cases=None,

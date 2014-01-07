@@ -1,5 +1,6 @@
 class NovaMoodTimeouts:
     def __init__(self,
+                 nova_request_timeout=60,
                  job=60 * 60 * 10,
                  parent_test=60 * 60 * 2,
                  test=60 * 60,
@@ -7,6 +8,7 @@ class NovaMoodTimeouts:
                  wait_for_active=60 * 3,
                  ping_instance=60 * 3,
                  ssh_instance=60 * 4):
+        self.nova_request_timeout = nova_request_timeout
         self.job = job
         self.parent_test = parent_test
         self.test = test
