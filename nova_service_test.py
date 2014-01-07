@@ -102,6 +102,10 @@ def get_error_type(error_string):
         return "(HTTP 429) Rate Limited"
     elif 'http 404' in error_text and 'not found' in error_text:
         return "(HTTP 404) Resource Not Found"
+    elif 'AddressLimitExceeded: Address quota exceeded' in error_text:
+        return "Address Quota Exceeded"
+    elif 'Quota exceeded for instances' in error_text:
+        return "Instance Quota Exceeded"
     elif 'http 400' in error_text and 'nw_info cache associated with instance' in error_text:
         return "(HTTP 400) No nw_info cache associated with instance"
     elif 'http 400' in error_text and 'unable to associate floating ip' in error_text:
