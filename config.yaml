@@ -78,6 +78,7 @@ retry_expo_backoff:
 
 # timeouts for nova mood
 timeouts:
+  nova_request_timeout: 60
   job: 36000
   parent_test: 3600
   test: 1200
