@@ -1,15 +1,17 @@
 import sys
 import os.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
-
+import pygal
+from pygal.style import NeonStyle
 import nova_mood_db
+from datetime import datetime
 
 
 def failure_rates_by_zone(bool_prettytable=False):
     """ get failure counts, rate, grouped by day, for each zone """
 
     sql_query = """
-    select DATE_FORMAT(t.time_started, '%m-%d-%Y') as my_date,
+    select DATE_FORMAT(t.time_started, '%Y-%m-%d') as my_date,
       tp.environ_name,
       tp.zone,
       count(*) as total_tests,
@@ -86,7 +88,7 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
 
     sql_query = """
     -- failure type by hour last seven days
-    select DATE_FORMAT(tr.time_started, '%m-%d-%Y-%H') as my_date, count(*) as error_count,
+    select DATE_FORMAT(tr.time_started, '%Y-%m-%d-%H') as my_date, count(*) as error_count,
       #tp.environ_name,
       trg.function_name,
       tr.concurrency_count,
@@ -136,6 +138,72 @@ def failure_rates_by_zone_and_concurrency(bool_prettytable=False):
 
     return result
 
+
+def failure_rates_by_hour_zone(bool_prettytable=False):
+    """ get failure counts, rate, grouped by hour, for each zone """
+
+    sql_query = """
+    select DATE_FORMAT(t.time_started, '%Y-%m-%d-%H') as my_date,
+      tp.environ_name,
+      tp.zone,
+      count(*) as total_tests,
+      SUM(hard_errors_exist) as total_failures,
+      AVG(t.hard_errors_exist) as failure_rate
+    from test_results as t
+    join test_passes as tp on tp.test_pass_id = t.test_pass_id
+     and tp.time_started > DATE_SUB(NOW(), INTERVAL 30 day)
+    group by my_date, tp.environ_name, tp.zone
+    order by my_date desc;
+    """
+
+    result = nova_mood_db.exec_query(sql_query, bool_prettytable)
+
+    return result
+
+
+def failure_rates_by_day_zone(bool_prettytable=False):
+    """ get failure counts, rate, grouped by day, for each zone """
+
+    sql_query = """
+    select DATE_FORMAT(t.time_started, '%Y-%m-%d') as my_date,
+      tp.environ_name,
+      tp.zone,
+      count(*) as total_tests,
+      SUM(hard_errors_exist) as total_failures,
+      AVG(t.hard_errors_exist) as failure_rate
+    from test_results as t
+    join test_passes as tp on tp.test_pass_id = t.test_pass_id
+     and tp.time_started > DATE_SUB(NOW(), INTERVAL 90 day)
+    group by my_date, tp.environ_name, tp.zone
+    order by my_date desc;
+    """
+
+    result = nova_mood_db.exec_query(sql_query, bool_prettytable)
+
+    return result
+
+
+def failure_rates_by_day_envs(bool_prettytable=False):
+    """ get failure counts, rate, grouped by day, for each zone """
+
+    sql_query = """
+    select DATE_FORMAT(t.time_started, '%Y-%m-%d') as my_date,
+      tp.environ_name,
+      count(*) as total_tests,
+      SUM(hard_errors_exist) as total_failures,
+      AVG(t.hard_errors_exist) as failure_rate
+    from test_results as t
+    join test_passes as tp on tp.test_pass_id = t.test_pass_id
+     and tp.time_started > DATE_SUB(NOW(), INTERVAL 90 day)
+    group by my_date, tp.environ_name
+    order by my_date desc;
+    """
+
+    result = nova_mood_db.exec_query(sql_query, bool_prettytable)
+
+    return result
+
+
 print '*********************************************************'
 print '*** Bravo West AW2-2 Failure Rate By Day and Zone ***'
 print '*********************************************************'
@@ -156,4 +224,79 @@ print '*****************************************************************'
 sql_result_data = failure_rates_by_zone_and_concurrency(bool_prettytable=True)
 print sql_result_data
 
+
+################################################
+########### GENERATE BRAVO WEST GRAPH - Failure Rate By Hour
+################################################
+
+sql_result_data = failure_rates_by_hour_zone()
+
+az1_data = []
+az2_data = []
+az3_data = []
+
+for index, row in enumerate(sql_result_data):
+
+    date_object = datetime.strptime(row[0], '%Y-%m-%d-%H')
+
+    if row[1] == 'bravo-AW2-2' and row[2] == 'az1':
+        az1_data.append([date_object, int(row[5] * 100)])
+    elif row[1] == 'bravo-AW2-2' and row[2] == 'az2':
+        az2_data.append([date_object, int(row[5] * 100)])
+    elif row[1] == 'bravo-AW2-2' and row[2] == 'az3':
+        az3_data.append([date_object, int(row[5] * 100)])
+
+chart = pygal.DateY(style=NeonStyle,
+                    width=1024,
+                    height=768,
+                    x_label_rotation=90,
+                    truncate_label=16,
+                    show_dots=False)
+
+chart.title = 'Bravo AW2-2 - % Failure Rate by Hour and Zone - Last 30 Days'
+
+chart.add('bravo-AW2-2-az1', az1_data)
+chart.add('bravo-AW2-2-az2', az2_data)
+chart.add('bravo-AW2-2-az3', az3_data)
+
+chart.render_to_file('bravo-west-failure-rate-by-hour.svg')
+chart.render_to_png('bravo-west-failure-rate-by-hour.png')
+
+
+################################################
+########### GENERATE BRAVO WEST GRAPH - Failure Rate By Day
+################################################
+
+sql_result_data = failure_rates_by_day_zone()
+
+az1_data = []
+az2_data = []
+az3_data = []
+
+for index, row in enumerate(sql_result_data):
+
+    date_object = datetime.strptime(row[0], '%Y-%m-%d')
+
+    if row[1] == 'bravo-AW2-2' and row[2] == 'az1':
+        az1_data.append([date_object, int(row[5] * 100)])
+    elif row[1] == 'bravo-AW2-2' and row[2] == 'az2':
+        az2_data.append([date_object, int(row[5] * 100)])
+    elif row[1] == 'bravo-AW2-2' and row[2] == 'az3':
+        az3_data.append([date_object, int(row[5] * 100)])
+
+chart = pygal.DateY(style=NeonStyle,
+                    width=1024,
+                    height=768,
+                    x_label_rotation=90,
+                    truncate_label=12,
+                    show_dots=False)
+
+chart.title = 'Bravo AW2-2 - % Failure Rate by Day - Last 90 Days'
+
+chart.add('bravo-AW2-2-az1', az1_data)
+chart.add('bravo-AW2-2-az2', az2_data)
+chart.add('bravo-AW2-2-az3', az3_data)
+
+chart.render_to_file('bravo-west-failure-rate-by-day.svg')
+chart.render_to_png('bravo-west-failure-rate-by-day.png')
 
