@@ -5,7 +5,7 @@ def failure_rates_by_zone(bool_prettytable=False):
     """ get failure counts, rate, grouped by day, for each zone """
 
     sql_query = """
-    select DATE_FORMAT(t.time_started, '%Y-%m-%d') as my_date,
+    select DATE_FORMAT(t.time_started, '%m-%d-%Y') as my_date,
       tp.environ_name,
       tp.zone,
       count(*) as total_tests,

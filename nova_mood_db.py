@@ -7,8 +7,8 @@ import MySQLdb
 
 db_name = 'nova_mood'
 db_root_user = 'root'
-db_password = 'please_set_password'
-db_hostname_or_ip = 'please_set_ip'
+db_password = 'Rnetpa55'
+db_hostname_or_ip = '15.185.94.52'
 
 
 def main():

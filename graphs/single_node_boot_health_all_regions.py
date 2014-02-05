@@ -27,15 +27,9 @@ def failure_rates_by_hour(bool_prettytable=False):
           AVG(t.hard_errors_exist) as failure_rate
         from test_results as t
         join test_passes as tp on tp.test_pass_id = t.test_pass_id
-<<<<<<< Updated upstream
-         and tp.time_started > DATE_SUB(NOW(), INTERVAL 3 day)
-        group by my_date, tp.zone
-        order by my_date desc;
-=======
          and tp.time_started > DATE_SUB(NOW(), INTERVAL 14 day)
         group by my_date, tp.zone
         order by my_date;
->>>>>>> Stashed changes
     """
 
     result = nova_mood_db.exec_query(sql_query, bool_prettytable)

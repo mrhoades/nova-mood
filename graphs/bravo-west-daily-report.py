@@ -3,15 +3,17 @@ import os.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 import pygal
 from pygal.style import NeonStyle
+from decimal import Decimal
 import nova_mood_db
 from datetime import datetime
+from datetime import timedelta
 
 
 def failure_rates_by_zone(bool_prettytable=False):
     """ get failure counts, rate, grouped by day, for each zone """
 
     sql_query = """
-    select DATE_FORMAT(t.time_started, '%Y-%m-%d') as my_date,
+    select DATE_FORMAT(t.time_started, '%m-%d-%Y') as my_date,
       tp.environ_name,
       tp.zone,
       count(*) as total_tests,
@@ -143,7 +145,7 @@ def failure_rates_by_hour_zone(bool_prettytable=False):
     """ get failure counts, rate, grouped by hour, for each zone """
 
     sql_query = """
-    select DATE_FORMAT(t.time_started, '%Y-%m-%d-%H') as my_date,
+    select DATE_FORMAT(t.time_started, '%m-%d-%Y-%H') as my_date,
       tp.environ_name,
       tp.zone,
       count(*) as total_tests,
@@ -187,7 +189,7 @@ def failure_rates_by_day_envs(bool_prettytable=False):
     """ get failure counts, rate, grouped by day, for each zone """
 
     sql_query = """
-    select DATE_FORMAT(t.time_started, '%Y-%m-%d') as my_date,
+    select DATE_FORMAT(t.time_started, '%m-%d-%Y') as my_date,
       tp.environ_name,
       count(*) as total_tests,
       SUM(hard_errors_exist) as total_failures,
@@ -237,7 +239,7 @@ az3_data = []
 
 for index, row in enumerate(sql_result_data):
 
-    date_object = datetime.strptime(row[0], '%Y-%m-%d-%H')
+    date_object = datetime.strptime(row[0], '%m-%d-%Y-%H')
 
     if row[1] == 'bravo-AW2-2' and row[2] == 'az1':
         az1_data.append([date_object, int(row[5] * 100)])

@@ -28,7 +28,7 @@ def failure_rates_by_zone(bool_prettytable=False):
     from test_results as t
     join test_passes as tp on tp.test_pass_id = t.test_pass_id
      and tp.time_started > DATE_SUB(NOW(), INTERVAL 60 day)
-    group by my_date, tp.zone
+    group by my_date, tp.environ_name, tp.zone
     order by my_date;
     """
 
@@ -125,44 +125,3 @@ chart.add('useast-az3', az3_data)
 
 chart.render_to_file('us-east-failure-rate.svg')
 chart.render_to_png('us-east-failure-rate.png')
-
-
-
-chart2 = pygal.DateY(style=NeonStyle,
-                    width=1024,
-                    height=768,
-                    x_label_rotation=90,
-                    truncate_label=12,
-                    show_dots=False)
-
-# chart = pygal.DateY(style=NeonStyle,
-#                     tooltip_border_radius=4,
-#                     tooltip_font_size=12,
-#                     width=1024,
-#                     height=768,
-#                     x_label_rotation=90,
-#                     y_label_rotation=10,
-#                     truncate_label=12,
-#                     show_dots=False,
-#                     dots_size=1)
-
-chart2.title = 'Prod 1.0 Percent Failure Rate by Zone - Last 90 Days'
-
-chart2.add('uswest-az2', prod1_az2_data)
-
-chart2.render_to_file('us-west-failure-rate.svg')
-chart2.render_to_png('us-west-failure-rate.png')
-
-
-
-# pie_chart = pygal.Pie()
-# pie_chart.title = 'Failure Types by Region'
-# pie_chart.add('IE', [5.7, 10.2, 2.6, 1])
-# pie_chart.add('Firefox', [.6, 16.8, 7.4, 2.2, 1.2, 1, 1, 1.1, 4.3, 1])
-# pie_chart.add('Chrome', [.3, .9, 17.1, 15.3, .6, .5, 1.6])
-# pie_chart.add('Safari', [4.4, .1])
-# pie_chart.add('Opera', [.1, 1.6, .1, .5])
-
-
-
-
