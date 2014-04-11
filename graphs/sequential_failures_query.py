@@ -99,5 +99,7 @@ if sql_result_data[0][0] >= options.int_sequential_failure_threshold:
     print 'SEQUENTIAL FAILURES DETECTED'
     url_of_pain = "FAILING JOB: {0}job/{1}".format('$JENKINS_URL', options.job_name)
     print url_of_pain
+    sys.exit(url_of_pain)
 else:
     print 'NOTHING TO SEE HERE'
+    sys.exit(0)
