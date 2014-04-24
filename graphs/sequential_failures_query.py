@@ -45,12 +45,14 @@ if not options.db_password:
     parser.print_help()
     sys.exit(0)
 
+
 def check_for_sequential_failures(job_name, int_sequential_failure_threshold):
     """ look for seqential failures """
 
-    sql_query = "select count(*) from (select * from JENKINS_BUILD_DETAILS " \
-                "where name = '{0}' order by endDate DESC LIMIT {1}) as jobdata " \
-                "where jobdata.result = 'FAILURE';".format(job_name, int_sequential_failure_threshold)
+    sql_query = """select count(*) from (
+    select * from JENKINS_BUILD_DETAILS as jbd
+    where name = '{0}' order by endDate DESC LIMIT {1})
+    as jobdata where jobdata.result = 'FAILURE';""".format(job_name, int_sequential_failure_threshold)
 
     result = exec_query(sql_query)
 
