@@ -562,8 +562,11 @@ class NovaServiceTest(object):
     @nova_collector(bool_sync=False)
     def get_image_object(self, image):
         logger.info("Get image object for {0}".format(image))
-        nova_image_object = self.nova.images.find(name=image)
-        return Object(nova_image_object.id)
+        # nova_image_object = self.nova.images.find(name=image)
+        nova_image_list = self.nova.images.list()
+        for image_object in nova_image_list:
+            if image in str(image_object.name) or image in str(image_object.id):
+                return Object(image_object.id)
 
     @nova_collector(tries=1, bool_sync=False)
     def wait_for_active_status(self, server, timeout_seconds=180):
