@@ -38,14 +38,14 @@ def main():
     env = parse_args(env)           # fill with args data
     pass
 
-    cleanup_nova_test_env(env)
-    cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
+    #cleanup_nova_test_env(env)
+    #cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
     create_perf_metric_security_group(env)
     nova_boot_scaling(env)
 
     # bugbugbug - test that are to be run should be defined in yaml or passed in somehow
     # bugbugbug - half baked trove scaling
-    # test_trove_create_concurrently(env, 1)
+    #test_trove_create_concurrently(env, 1)
 
 
 @timeout(timeouts.parent_test)
@@ -174,7 +174,9 @@ def test_nova_boot(instance_name, env, global_lock, throttle):
         if env.nova_assign_floating_ip:
             nova.floating_ip_attach_new(server)
 
-        nova.ping_device(server.ip_floating, timeouts.ping_instance)
+        if not env.skip_ping_device:
+            nova.ping_device(server.ip_floating, timeouts.ping_instance)
+
         env.test_case_stats[instance_name].now_pingable()
 
         nova.ssh(server, timeouts.ssh_instance)
@@ -655,6 +657,12 @@ def parse_args(env):
     env.key_name = os.environ['OS_KEYPAIR']
     env.availability_zone = os.environ['OS_AVAILABILITY_ZONE']
 
+    if 'OS_FLAVOR_NAME' in os.environ:
+        env.flavor_name = os.environ['OS_FLAVOR_NAME']
+    if 'OS_IMAGE_NAME' in os.environ:
+        env.image_name = os.environ['OS_IMAGE_NAME']
+    if 'SKIP_PING' in os.environ:
+        env.skip_ping_device = os.environ['SKIP_PING'].lower() in ("yes", "true", "t", "1")
     if 'NOVA_INSTANCE_COUNT' in os.environ:
         env.instance_count = int(os.environ['NOVA_INSTANCE_COUNT'])
     if 'NOVA_NAME' in os.environ:
