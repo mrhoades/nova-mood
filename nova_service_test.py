@@ -7,6 +7,7 @@ import socket
 import sys
 import time
 import traceback
+import os
 
 from datetime import datetime
 from datetime import timedelta
@@ -262,6 +263,7 @@ class NovaServiceTest(object):
                                   auth_url=self.auth_url,
                                   region_name=self.region,
                                   service_type="compute",
+                                  insecure=True,
                                   timeout=self.nova_request_timeout)
 
     @nova_collector(throttle=nova_throttle.connect)
