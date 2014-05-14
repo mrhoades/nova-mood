@@ -117,7 +117,7 @@ class Nova_health_tests(testtools.TestCase):
         date = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S-%f")
         self.INSTANCE_NAME = 'nova_test_' + build_number + '_' + date
         self.VOLUME_NAME = 'volume_test_' + build_number + '_' + date
-        self.SECGROUP_NAME = 'secgroup_test_' + build_number + '_' + date
+        self.SECGROUP_NAME = 'secgroup_static'
         self.IMAGE_NAME = 'image_test_' + build_number + '_' + date
         self.KEY_NAME = 'key_test' + '_' + build_number + '_' + date
         self.KEY_FILE_NAME = '/tmp/' + self.KEY_NAME
@@ -141,7 +141,6 @@ class Nova_health_tests(testtools.TestCase):
 
         self.addOnException(self.disable_cleanup)
         self.cleanup()
-
 
     def disable_cleanup(self, exc_info):
         enable_skip_cleanup = os.getenv('ENABLE_SKIP_CLEANUP', 'False')
@@ -506,35 +505,23 @@ class Nova_health_tests(testtools.TestCase):
         # sleep 10 seconds for instance to be ready (ssh server)
         time.sleep(10)
 
+        secGroupExists = False
+        groups = self.nova.security_groups.list()
+        for group in groups:
+            if group.name == self.SECGROUP_NAME:
+                secGroupExists = True
+                break
+        if not secGroupExists:
+            logger.info("Creating new security group + rules")
+            secgroup = self.nova.security_groups.create(self.SECGROUP_NAME,
+                                                        'test_boot_with_ephemeral')
+            self.nova.security_group_rules.create(secgroup.id, 'tcp', 22, 22, '0.0.0.0/0')
+
+        self.nova.servers.add_security_group(server_id, self.SECGROUP_NAME)
+
         # Ensure secgroup is not open
         logger.info("Network label for instance %s: %s", server_id, newserver.networks)
         network = newserver.networks[self.network_label][-1]
-        is_port_open = True
-        try:
-            telnetlib.Telnet(network, 22, 5 * MINUTE)
-            is_port_open = True
-        except Exception:
-            is_port_open = False
-        if is_port_open:
-            self.fail('Port %s:22 was already open' % network)
-
-        # create sec group + rule and add it to the instance
-        logger.info("Creating new security group + rules")
-        secgroup = self.nova.security_groups.create(self.SECGROUP_NAME,
-                                                    'test_boot_with_ephemeral')
-        self.nova.security_group_rules.create(secgroup.id, 'tcp', 22, 22,
-                                              '0.0.0.0/0')
-        self.nova.servers.add_security_group(server_id, self.SECGROUP_NAME)
-
-        logger.info('Telnetting to %s:%s', network, 22)
-        try:
-            check_sec_group = poll_until(lambda: check_for_exception(telnetlib.Telnet, network, 22, 10 * MINUTE),
-                                         lambda result: result,
-                                         sleep_time=5)
-            self.assertTrue(check_sec_group, 'Cannot telnet to port ' + network + ':22')
-        except PollTimeout:
-            error_message = 'Cannot telnet to port ' + network + ':22'
-            self.fail(error_message)
 
         logger.info('SSHing to %s', network)
         client = ssh.SSHClient()
@@ -692,12 +679,6 @@ class Nova_health_tests(testtools.TestCase):
             except PollTimeout:
                 self.fail('Instance %s could not be deleted' % (server.name,))
         finally:
-            # Remove any security group with a matching name.
-            previous = re.compile('^' + self.SECGROUP_NAME)
-            for secgroup in self.nova.security_groups.list():
-                if previous.match(secgroup.name):
-                    logger.info("Deleting security group %s", secgroup.name)
-                    self.nova.security_groups.delete(secgroup.id)
 
             # Remove any image with a matching name.
             previous = re.compile('^' + self.IMAGE_NAME)
