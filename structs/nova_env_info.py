@@ -23,6 +23,7 @@ class NovaTestInfo:
                  action_sleep_interval=.6,
                  nova_assign_floating_ip=True,
                  cleanup_orphaned_floating_ips=False,
+                 skip_ping_device=False,
                  run_rate_limit_buster=False,
                  logger=None,
                  timeout_minutes=30,
@@ -57,6 +58,7 @@ class NovaTestInfo:
         self.action_sleep_interval = action_sleep_interval
         self.nova_assign_floating_ip = nova_assign_floating_ip
         self.cleanup_orphaned_floating_ips = cleanup_orphaned_floating_ips
+        self.skip_ping_device = skip_ping_device
         self.run_rate_limit_buster = run_rate_limit_buster
         self.timeout_minutes = timeout_minutes
         self.global_lock = global_lock
