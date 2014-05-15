@@ -21,10 +21,10 @@ nova_auth:
 
 # Nova Mood Stats DB Connect Info
 nova_mood_db_auth:
-  db_hostname_or_ip: 'please_set'
-  db_name: 'please_set'
-  db_root_user: 'please_set'
-  db_password: 'please_set'
+  db_hostname_or_ip: 'please_set_ip'
+  db_name: 'nova_mood'
+  db_root_user: 'root'
+  db_password: 'please_set_password'
 
 # Throttle options control the flow speed,
 # delays, and synchronicity of nova requests
