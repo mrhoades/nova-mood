@@ -463,12 +463,13 @@ class Nova_health_tests(testtools.TestCase):
         logger.info("Starting boot instance with ephemeral test")
         logger.info("-----------------------------------------------")
 
-        # Add keypair
-        logger.info("Adding new pub key")
-        keypair = self.nova.keypairs.create(self.KEY_NAME)
-        f = open(self.KEY_FILE_NAME, 'w')
-        f.write(keypair.private_key)
-        f.close()
+        # # Add keypair
+        # logger.info("Adding new pub key")
+        # keypair = self.nova.keypairs.create(self.KEY_NAME)
+        # f = open(self.KEY_FILE_NAME, 'w')
+        # f.write(keypair.private_key)
+        # f.close()
+
 
         # boot instance
         logger.info("Booting new instance: %s", self.INSTANCE_NAME)
@@ -476,7 +477,7 @@ class Nova_health_tests(testtools.TestCase):
         image = self.nova.images.find(name=self.image)
         server_id = self.nova.servers.create(self.INSTANCE_NAME,
                                              image=image,
-                                             key_name=self.KEY_NAME,
+                                             key_name='paas-racks-jenkins',
                                              flavor=flavor,
                                              availability_zone=self.availability_zone).id
 
