@@ -117,7 +117,10 @@ class Nova_health_tests(testtools.TestCase):
         date = datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S-%f")
         self.INSTANCE_NAME = 'nova_test_' + build_number + '_' + date
         self.VOLUME_NAME = 'volume_test_' + build_number + '_' + date
-        self.SECGROUP_NAME = 'secgroup_static'
+        if os.getenv('SECGROUP_NAME', ''):
+            self.SECGROUP_NAME = os.getenv('SECGROUP_NAME', '')
+        else:
+            self.SECGROUP_NAME = 'secgroup_test_' + build_number + '_' + date
         self.IMAGE_NAME = 'image_test_' + build_number + '_' + date
         self.KEY_NAME = 'key_test' + '_' + build_number + '_' + date
         self.KEY_FILE_NAME = '/tmp/' + self.KEY_NAME
