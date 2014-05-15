@@ -463,16 +463,12 @@ class Nova_health_tests(testtools.TestCase):
         logger.info("Starting boot instance with ephemeral test")
         logger.info("-----------------------------------------------")
 
-        time.sleep(30)
-
         # Add keypair
         logger.info("Adding new pub key")
         keypair = self.nova.keypairs.create(self.KEY_NAME)
         f = open(self.KEY_FILE_NAME, 'w')
         f.write(keypair.private_key)
         f.close()
-
-        time.sleep(30)
 
         # boot instance
         logger.info("Booting new instance: %s", self.INSTANCE_NAME)
@@ -483,8 +479,6 @@ class Nova_health_tests(testtools.TestCase):
                                              key_name=self.KEY_NAME,
                                              flavor=flavor,
                                              availability_zone=self.availability_zone).id
-
-        time.sleep(30)
 
         logger.info("Instance %s is building",  server_id)
         newserver = None
@@ -509,7 +503,7 @@ class Nova_health_tests(testtools.TestCase):
         logger.info("Instance %s is active",  server_id)
 
         # sleep 10 seconds for instance to be ready (ssh server)
-        time.sleep(30)
+        time.sleep(10)
 
         secGroupExists = False
         groups = self.nova.security_groups.list()
@@ -524,16 +518,12 @@ class Nova_health_tests(testtools.TestCase):
             self.nova.security_group_rules.create(secgroup.id, 'tcp', 22, 22, '0.0.0.0/0')
             self.nova.security_group_rules.create(secgroup.id, 'icmp', -1, -1, '0.0.0.0/0')
 
-        time.sleep(30)
-
         self.nova.servers.add_security_group(server_id, self.SECGROUP_NAME)
 
 
         # Ensure secgroup is not open
         logger.info("Network label for instance %s: %s", server_id, newserver.networks)
         network = newserver.networks[self.network_label][-1]
-
-        time.sleep(30)
 
         logger.info('SSHing to %s', network)
         client = ssh.SSHClient()
