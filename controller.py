@@ -38,8 +38,8 @@ def main():
     env = parse_args(env)           # fill with args data
     pass
 
-    #cleanup_nova_test_env(env)
-    #cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
+    cleanup_nova_test_env(env)
+    cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
     create_perf_metric_security_group(env)
     nova_boot_scaling(env)
 
