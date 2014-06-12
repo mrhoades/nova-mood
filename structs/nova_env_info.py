@@ -16,7 +16,7 @@ class NovaTestInfo:
                  region='region-b.geo-1',
                  auth_ver='2.0',
                  key_name='',
-                 image='Ubuntu Server 12.04.4 LTS (amd64 20140408)',
+                 image='Ubuntu Precise 12.04 LTS Server 64-bit 2012',
                  flavor='standard.medium',
                  availability_zone='az1',
                  security_group='perf-metrics',
