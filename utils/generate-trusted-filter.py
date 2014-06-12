@@ -53,10 +53,13 @@ def generate_trusted_filter(bool_prettytable=False):
     """ get failure counts, rate, grouped by day, for each zone """
 
     sql_query = """
-    select id1.account_id, id1.email_address, id1.external_id, id2.external_id
-      from (select account_id, external_id, email_address from account_external_ids where external_id like '%login.launchpad.net%' and inactive = 'N') as id1
-      left join (select account_id, external_id from account_external_ids where external_id like '%/launchpad.net%' and inactive = 'N') as id2 on id1.account_id = id2.account_id
-      order by id2.external_id;
+    select id1.account_id, id1.email_address, id1.external_id, id2.external_id, acc.full_name
+      from (select account_id, external_id, email_address from account_external_ids where external_id like '%login.launchpad.net%') as id1
+      left join (select account_id, external_id from account_external_ids where external_id like '%/launchpad.net%') as id2 on id1.account_id = id2.account_id
+      left join (select account_id, external_id from account_external_ids where external_id like '%username:%') as id3 on id1.account_id = id3.account_id
+      left join (select * from accounts) as acc on id1.account_id = acc.account_id
+    where acc.inactive = 'N'
+    order by acc.full_name
     """
 
     # create output strings that look like this pattern
@@ -68,8 +71,7 @@ def generate_trusted_filter(bool_prettytable=False):
         email = str(identity[1])
         lp_user = str(identity[2]).replace('https://login.launchpad.net/', '')
         lp_user_code = str(identity[3]).replace('https://launchpad.net/', '')
-        trust = 'trustedOpenID = ^https://(login\\\.)?launchpad\\\.net/({0}|\\\{1}|{2})$'.format(lp_user_code, lp_user,
-                                                                                                 email)
+        trust = 'trustedOpenID = ^https://(login\\\.)?launchpad\\\.net/({0}|\\\{1}|{2})$'.format(lp_user_code, lp_user, email)
         print trust
 
 generate_trusted_filter()
