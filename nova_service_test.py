@@ -127,6 +127,8 @@ def get_error_type(error_string):
         return "(HTTP 500)"
     elif 'bad request' in error_text or '400' in error_text:
         return "(HTTP 400) Bad Request"
+    elif 'Max retries exceeded with url' in error_text:
+        return "Max retries exceeded with url"
     else:
         return error_string
 
