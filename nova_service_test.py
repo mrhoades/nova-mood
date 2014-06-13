@@ -107,10 +107,12 @@ def get_error_type(error_string):
         return "Address Quota Exceeded"
     elif 'Quota exceeded for instances' in error_text:
         return "Instance Quota Exceeded"
+    elif 'Invalid key_name provided' in error_text:
+        return "(HTTP 400) Invalid key_name provided"
     elif 'http 400' in error_text and 'nw_info cache associated with instance' in error_text:
         return "(HTTP 400) No nw_info cache associated with instance"
     elif 'http 400' in error_text and 'unable to associate floating ip' in error_text:
-        return "Error. Unable to associate floating ip (HTTP 400)"
+        return "(HTTP 400) Unable to associate floating ip"
     elif 'permission denied (publickey)' in error_text and 'ssh' in error_text:
         return "SSH Failed: Permission denied (publickey)"
     elif 'ssh timeout' in error_text:
