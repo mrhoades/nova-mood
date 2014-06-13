@@ -38,6 +38,8 @@ sql_result_data = failure_rates_by_day_envs(for_the_last_x_days=360)
 bravo_east_data = []
 bravo_west_data = []
 prod_10_data = []
+paas_racks_east = []
+paas_racks_west = []
 
 for index, row in enumerate(sql_result_data):
 
@@ -49,6 +51,10 @@ for index, row in enumerate(sql_result_data):
         bravo_west_data.append([date_object, int(row[4] * 100)])
     elif row[1] == 'prod_1.0':
         prod_10_data.append([date_object, int(row[4] * 100)])
+    elif row[1] == 'paas-racks-east':
+        paas_racks_east.append([date_object, int(row[4] * 100)])
+    elif row[1] == 'paas-racks-west':
+        paas_racks_west.append([date_object, int(row[4] * 100)])
 
 
 from pygal.style import NeonStyle
@@ -64,6 +70,8 @@ chart.title = 'HP Cloud Envs - % Failure Rate by Day - Last 360 Days'
 chart.add('Bravo East', bravo_east_data)
 chart.add('Bravo West', bravo_west_data)
 chart.add('One Dot Zero', prod_10_data)
+chart.add('PaaS Racks East', paas_racks_east)
+chart.add('PaaS Racks West', paas_racks_west)
 
 chart.render_to_file('prod-envs-failure-rate-by-day.svg')
 chart.render_to_png('prod-envs-failure-rate-by-day.png')
