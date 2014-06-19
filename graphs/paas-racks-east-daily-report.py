@@ -140,7 +140,7 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
     from test_results as tr
     left join test_results_granular as trg on tr.test_id = trg.test_id
     left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
-    where tr.concurrency_count > 1
+    where tr.concurrency_count >= 1
       and tp.environ_name = 'paas-racks-east'
       and trg.error_type != ''
       and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
