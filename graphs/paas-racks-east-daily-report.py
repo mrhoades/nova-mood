@@ -131,7 +131,6 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
     """ failure type by hour - last seven days """
 
     sql_query = """
-    -- failure type by hour last seven days
     select DATE_FORMAT(tr.time_started, '%Y-%m-%d-%H') as my_date, count(*) as error_count,
       #tp.environ_name,
       trg.function_name,
@@ -149,7 +148,6 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
       and trg.error_type not like '%unsupported operand type(s) for%'
     group by my_date, trg.error_type, tr.concurrency_count
     order by my_date desc, error_count desc;
-
     """
 
     result = nova_mood_db.exec_query(sql_query, bool_prettytable)
