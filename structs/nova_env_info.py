@@ -19,6 +19,7 @@ class NovaTestInfo:
                  image='Ubuntu Precise 12.04 LTS Server 64-bit 2012',
                  flavor='standard.medium',
                  availability_zone='az1',
+                 availability_zone_label=None,
                  security_group='perf-metrics',
                  action_sleep_interval=.6,
                  nova_assign_floating_ip=True,
@@ -54,6 +55,7 @@ class NovaTestInfo:
         self.image_object = None
         self.flavor_object = None
         self.availability_zone = availability_zone
+        self.availability_zone_label = availability_zone_label
         self.security_group = security_group
         self.action_sleep_interval = action_sleep_interval
         self.nova_assign_floating_ip = nova_assign_floating_ip

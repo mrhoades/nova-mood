@@ -12,10 +12,13 @@ class NovaTestStats:
                  execution_host,
                  cloud_account_username,
                  test_pass_id=None,
-                 concurrency_count=1):
+                 concurrency_count=1,
+                 zone_label=None):
         self.test_name = test_name
         self.environ_name = environ_name
-        self.zone = zone
+        if zone_label is not None:
+            self.zone = zone_label
+        self.zone_label = zone_label
         self.region = region
         self.execution_host = execution_host
         self.cloud_account_username = cloud_account_username

@@ -55,6 +55,7 @@ def nova_boot_scaling(env):
     pass_stats = NovaTestStats(test_name=env.test_name,
                                environ_name=env.env_name,
                                zone=env.availability_zone,
+                               zone_label=env.availability_zone_label,
                                region=env.region,
                                execution_host=env.execution_hostname,
                                cloud_account_username=env.username)
@@ -681,6 +682,8 @@ def parse_args(env):
         env.run_rate_limit_buster = os.environ['RUN_RATE_LIMIT_BUSTER'].lower() in ("yes", "true", "t", "1")
     if 'NOVA_SECURITY_GROUP' in os.environ:
         env.security_group = os.environ['NOVA_SECURITY_GROUP']
+    if 'AVAILABILITY_ZONE_LABEL' in os.environ:
+        env.availability_zone_label = os.environ['AVAILABILITY_ZONE_LABEL']
 
     env.execution_hostname = socket.gethostbyaddr(socket.gethostname())[0]
 
