@@ -62,6 +62,7 @@ def nova_boot_scaling(env):
 
     env.test_pass_id = nova_mood_db.create_new_test_pass(pass_stats)
     pass_stats.test_pass_id = env.test_pass_id
+    logger.info('CREATED TEST PASS WITH ID: {0}'.format(env.test_pass_id))
 
     try:
         cleanup_nova_test_env(env)
