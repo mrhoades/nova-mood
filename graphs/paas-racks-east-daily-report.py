@@ -214,6 +214,7 @@ sql_result_data = failure_rates_by_hour_zone()
 az1_data = []
 az2_data = []
 az3_data = []
+az1_sl390_data = []
 
 for index, row in enumerate(sql_result_data):
 
@@ -225,6 +226,8 @@ for index, row in enumerate(sql_result_data):
         az2_data.append([date_object, int(row[5] * 100)])
     elif row[1] == 'paas-racks-east' and row[2] == 'dbaas-ae1az3-v1':
         az3_data.append([date_object, int(row[5] * 100)])
+    elif row[1] == 'paas-racks-east' and row[2] == 'dbaas-ae1az1-sl390':
+        az1_sl390_data.append([date_object, int(row[5] * 100)])
 
 chart = pygal.DateY(style=NeonStyle,
                     width=1024,
@@ -243,6 +246,7 @@ chart.title = 'PaaS Racks East - % Failure Rate by Hour and Zone - Last 30 Days'
 chart.add('dbaas-ae1az1-v1', az1_data)
 chart.add('dbaas-ae1az2-v1', az2_data)
 chart.add('dbaas-ae1az3-v1', az3_data)
+chart.add('ae1az1-sl390', az1_sl390_data)
 
 chart.render_to_file('paas-racks-east-failure-rate-by-hour.svg')
 chart.render_to_png('paas-racks-east-failure-rate-by-hour.png')
@@ -268,6 +272,8 @@ for index, row in enumerate(sql_result_data):
         az2_data.append([date_object, int(row[5] * 100)])
     elif row[1] == 'paas-racks-east' and row[2] == 'dbaas-ae1az3-v1':
         az3_data.append([date_object, int(row[5] * 100)])
+    elif row[1] == 'paas-racks-east' and row[2] == 'dbaas-ae1az1-sl390':
+        az1_sl390_data.append([date_object, int(row[5] * 100)])
 
 chart = pygal.DateY(style=NeonStyle,
                     width=1024,
@@ -281,6 +287,7 @@ chart.title = 'PaaS Racks East AE1 - % Failure Rate by Day - Last 90 Days'
 chart.add('dbaas-ae1az1-v1', az1_data)
 chart.add('dbaas-ae1az2-v1', az2_data)
 chart.add('dbaas-ae1az3-v1', az3_data)
+chart.add('ae1az1-sl390', az1_sl390_data)
 
 chart.render_to_file('paas-racks-east-failure-rate-by-day.svg')
 chart.render_to_png('paas-racks-east-failure-rate-by-day.png')
