@@ -18,6 +18,8 @@ class NovaTestStats:
         self.environ_name = environ_name
         if zone_label is not None:
             self.zone = zone_label
+        else:
+            self.zone = zone
         self.zone_label = zone_label
         self.region = region
         self.execution_host = execution_host
