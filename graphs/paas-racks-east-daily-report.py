@@ -181,6 +181,32 @@ def failure_rates_by_zone_and_concurrency(bool_prettytable=False):
 
     return result
 
+def unpingable_ips(bool_prettytable=False):
+    """ get failure counts, rate, grouped by day, for each zone """
+
+    sql_query = """
+        select DATE_FORMAT(tr.time_started, '%Y-%m-%d') as my_date,
+          SUBSTRING(trg.error_text, INSTR(trg.error_text, 'for IP ') + 7, INSTR(trg.error_text, 'after trying for') - INSTR(trg.error_text, 'for IP ') - 7) as bad_ip,
+          count(*) as ip_used_x_times,
+          tp.environ_name,
+          tp.zone,
+          trg.error_type
+        from test_results as tr
+        left join test_results_granular as trg on tr.test_id = trg.test_id
+        left join test_passes as tp on tr.test_pass_id = tp.test_pass_id
+        where trg.error_type = 'Ping Timeout'
+          and tp.environ_name = 'paas-racks-east'
+              and tp.time_started > DATE_SUB(NOW(), INTERVAL 7 day)
+        group by my_date, bad_ip
+        order by my_date desc, tp.environ_name;
+    """
+
+    result = nova_mood_db.exec_query(sql_query, bool_prettytable)
+
+    return result
+
+
+
 print '*********************************************************'
 print '*** PaaS Racks East - Failure Rate By Day and Zone ***'
 print '*********************************************************'
@@ -201,8 +227,12 @@ print '*****************************************************************'
 sql_result_data = failure_rates_by_zone_and_concurrency(bool_prettytable=True)
 print sql_result_data
 
-
-
+print ''
+print '*****************************************************************'
+print '*** PaaS Racks East - Instance IPs Not Pingable (after 10 minutes) - Last 7 Days ***'
+print '*****************************************************************'
+sql_result_data = unpingable_ips(bool_prettytable=True)
+print sql_result_data
 
 
 ################################################
