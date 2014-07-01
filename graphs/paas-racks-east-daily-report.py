@@ -291,6 +291,7 @@ sql_result_data = failure_rates_by_day_zone()
 az1_data = []
 az2_data = []
 az3_data = []
+az1_sl390_data = []
 
 for index, row in enumerate(sql_result_data):
 
