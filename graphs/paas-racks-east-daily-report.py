@@ -132,7 +132,7 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
 
     sql_query = """
     select DATE_FORMAT(tr.time_started, '%Y-%m-%d-%H') as my_date, count(*) as error_count,
-      #tp.environ_name,
+      tp.zone,
       trg.function_name,
       tr.concurrency_count,
       trg.error_type
@@ -146,7 +146,7 @@ def failure_type_by_hour_last_seven_days(bool_prettytable=False):
       and trg.error_type != '(HTTP 404) Resource Not Found'
       and trg.error_type != '(HTTP 429) Rate Limited'
       and trg.error_type not like '%unsupported operand type(s) for%'
-    group by my_date, trg.error_type, tr.concurrency_count
+    group by my_date, tp.zone, trg.error_type, tr.concurrency_count
     order by my_date desc, error_count desc;
     """
 
@@ -215,7 +215,7 @@ print sql_result_data
 
 print ''
 print '*******************************************************************************'
-print '*** PaaS Racks East - Failure Counts - 7 Day - By Hour Method and Concurrency Count'
+print '*** PaaS Racks East - Failure Counts - 7 Day - By Hour Zone Method and Concurrency Count'
 print '*******************************************************************************'
 sql_result_data = failure_type_by_hour_last_seven_days(bool_prettytable=True)
 print sql_result_data
