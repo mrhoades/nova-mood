@@ -70,7 +70,7 @@ def failure_rates_by_env(bool_prettytable=False, for_the_last_x_days=360):
 # failure_rate_moving_avg(moving_avg_period=10, for_the_last_x_days=7)
 
 
-
+failure_rates_by_env(bool_prettytable=True, for_the_last_x_days=1)
 failure_rates_by_env(bool_prettytable=True, for_the_last_x_days=7)
 failure_rates_by_env(bool_prettytable=True, for_the_last_x_days=14)
 failure_rates_by_env(bool_prettytable=True, for_the_last_x_days=30)
