@@ -29,6 +29,7 @@ class NovaTestInfo:
                  logger=None,
                  timeout_minutes=30,
                  nova_request_timeout=60,
+                 hard_rebuild=False,
                  global_lock=None,
                  global_dict=None,
                  test_cases=None,
@@ -63,6 +64,7 @@ class NovaTestInfo:
         self.skip_ping_device = skip_ping_device
         self.run_rate_limit_buster = run_rate_limit_buster
         self.timeout_minutes = timeout_minutes
+        self.hard_rebuild = hard_rebuild
         self.global_lock = global_lock
         self.global_dict = global_dict
         self.logger = logger

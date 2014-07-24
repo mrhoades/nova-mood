@@ -422,7 +422,6 @@ class NovaServiceTest(object):
             logger.info("Delete server with ID: {0}".format(server))
             self.nova.servers.delete(server)
 
-
     @nova_collector(bool_sync=nova_throttle.bool_sync_float_ip, throttle=nova_throttle.floating_ip_attach)
     def server_attach_floating_ip(self, nova_server_object, floating_ip):
         logger.info("Attach floating IP {0} to server {1}".format(floating_ip, nova_server_object.name))
@@ -450,6 +449,23 @@ class NovaServiceTest(object):
     @nova_collector(bool_sync=nova_throttle.bool_sync_requests, throttle=nova_throttle.get_server_list)
     def servers_get_list(self):
             return self.nova.servers.list()
+
+    @nova_collector(bool_sync=nova_throttle.bool_sync_requests)
+    def server_with_name_exists(self, name):
+        servers = self.nova.servers.list()
+        for server in servers:
+            if server.name == name:
+                return True
+        return False
+
+    @nova_collector(bool_sync=nova_throttle.bool_sync_requests)
+    def server_with_name_get(self, name):
+        servers = self.nova.servers.list()
+        for server in servers:
+            if server.name == name:
+                return server
+        msg = 'Server with name {0} could not be found.'.format(name)
+        raise Exception(msg)
 
     @nova_collector(bool_sync=False, tries=1, throttle=0)
     def floating_ip_attach_new(self, server, pool=None):
@@ -661,8 +677,12 @@ class NovaServiceTest(object):
                         "to reach ACTIVE state.".format(timeout_seconds, server.id))
 
     @nova_collector(tries=1, bool_sync=False)
-    def wait_for_deletion(self, server_id, timeout_seconds=180):
-        logger.info("Wait for server with ID: {0} to be DELETED".format(server_id))
+    def wait_for_deletion(self, server, timeout_seconds=180):
+        if hasattr(server, 'id'):
+            server_id = server.id
+        else:
+            server_id = server
+        logger.info("Wait for deletion of server with ID: {0}".format(server_id))
 
         # TODO: remove hard coded timeout here
         stop_time = datetime.now() + timedelta(seconds=timeout_seconds)
