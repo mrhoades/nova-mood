@@ -17,7 +17,7 @@ from structs.nova_mood_timouts import NovaMoodTimeouts
 from structs.boot_scaling import BootScaling
 from structs.throttle import Throttle
 from nova_service_test import NovaServiceTest
-from troveclient import utils
+
 
 logging.basicConfig(format='%(asctime)s\t%(name)-16s %(levelname)-8s %(message)s')
 logger = logging.getLogger('controller')
@@ -33,45 +33,39 @@ nova_auth = NovaAuth()
 
 @timeout(timeouts.job)
 def main():
-    env = NovaTestInfo()            # construct test environment object
+    env = NovaTestInfo()                 # construct test environment object
     env = parse_config_yaml(env)    # fill with yaml config
-    env = parse_args(env)           # fill with args data
-    env.hard_rebuild = False    # force this to reconstruct the static instances
-    pass
+    env = parse_args(env)               # fill with args data
+    env.hard_rebuild = True            # use this switch to reconstruct the instances
 
-    # need three static floating ips reserved for this test (one from each env az) and three static unique instance name
-
-    # | 15.125.87.25   |           | -          | Ext-Net |
-    # | 15.125.102.21  |           | -          | Ext-Net |
-    # | 15.125.127.170 |           | 10.0.0.129 | Ext-Net |
-
-    # check if instances already exist, if they don't create them
-
-    # if the instances exist, check their state and happiness
-    # - are they ACTIVE
-    # - are they PINGABLE
-    # - are they SSHABLE
-    # - can they ping each other at their public IPS
-    # - can they ping each other at their NAT IPS
-
-    # fail the test case if anything isn't happy and summarize the status in console out
-
-    # need option to force rebuild any broken instances
-
-    # need option to force rebuild the whole environment
-
-
-    # cleanup_nova_test_env(env)
-    # cleanup_orphaned_float_ip_in_test_env(env, ignore_ip_list={'15.126.197.219'})
     env = get_flavor_and_image_objects(env)  # set image and flavor objects with env specific id's
     create_perf_metric_security_group(env)
 
-    test_nova_instance_longevity(env, 'nova-instance-longevity-az1', 'az1', '15.125.72.139')
-    test_nova_instance_longevity(env, 'nova-instance-longevity-az2', 'az2', '15.125.115.198')
-    test_nova_instance_longevity(env, 'nova-instance-longevity-az3', 'az3', '15.125.127.170')
+    # test_nova_instance_longevity(env, 'nova-instance-longevity-az1', 'az1', '15.125.72.139')
+    # test_nova_instance_longevity(env, 'nova-instance-longevity-az2', 'az2', '15.125.115.198')
+    # test_nova_instance_longevity(env, 'nova-instance-longevity-az3', 'az3', '15.125.127.170')
+
+    test_nova_instance_longevity(env, 'nova-instance-longevity-ae1az1', 'dbaas-ae1az1-v1')
+    test_nova_instance_longevity(env, 'nova-instance-longevity-ae1az2', 'dbaas-ae1az2-v1')
+    test_nova_instance_longevity(env, 'nova-instance-longevity-ae1az3', 'dbaas-ae1az3-v1')
+
+    # test_nova_instance_longevity(env, 'nova-instance-longevity-az2', 'az2')
+    # test_nova_instance_longevity(env, 'nova-instance-longevity-az3', 'az3')
 
 
-def test_nova_instance_longevity(env, instance_name, zone, floating_ip):
+def test_nova_instance_longevity(env, instance_name, zone, assign_floating_ip=None, force_rebuild=True):
+
+    """
+    This test scenario boots instances if they don't exist, checks the happiness of
+    the instances, and leaves them in place to test long term happiness. If there
+    were an issue with connectivity to the instance, the test will fail. An option to
+    perform a forceful rebuild is provided, in the event the instances can't
+    be recovered.
+
+    This test scenarios requires:
+        static floating ip reserved for this test
+        static unique instance name
+    """
 
     logger.info('BEGIN TEST: test_nova_instance_longevity {0}'.format(instance_name))
 
@@ -79,8 +73,7 @@ def test_nova_instance_longevity(env, instance_name, zone, floating_ip):
 
     try:
 
-        nova = NovaServiceTest(lock=global_lock,
-                               throttle_in=throttle,
+        nova = NovaServiceTest(throttle_in=throttle,
                                username=env.username,
                                password=env.password,
                                tenant_name=env.tenant_name,
@@ -103,162 +96,34 @@ def test_nova_instance_longevity(env, instance_name, zone, floating_ip):
         nova.connect()
 
         # force rebuild to clean env
-        if env.hard_rebuild is True:
+        if force_rebuild is True:
             nova.delete_servers_with_pattern(instance_name)
             nova.wait_for_deletion(instance_name)
 
-        # rebuild the instance if it doesn't exist
+        # if the instance already exists, just build it's object, get it's ip address
         if nova.server_with_name_exists(instance_name):
             nova_server_object = nova.server_with_name_get(instance_name)
+            server = nova.fill_add_server_object(nova_server_object)
         else:
             nova_server_object = nova.boot(instance_name)
             server = nova.fill_add_server_object(nova_server_object)
-            nova_server_object = nova.wait_for_active_status(server, timeouts.wait_for_active)
-            server.update_ips(nova_server_object.addresses)
-            floating_ip_object = nova.floating_ip_get_object(floating_ip)
-            nova.server_attach_floating_ip(nova_server_object, floating_ip_object)
+            nova.wait_for_active_status(server, timeouts.wait_for_active)
 
-        # rebuild objects for the instance
-        server = nova.fill_add_server_object(nova_server_object)
-        server.ip_floating = floating_ip
-        server.name = instance_name
+            if assign_floating_ip is not None:
+                floating_ip_object = nova.floating_ip_get_object(assign_floating_ip)
+                nova.server_attach_floating_ip(nova_server_object, floating_ip_object)
+            nova_server_object = nova.server_with_name_get(instance_name)
+            server = nova.fill_add_server_object(nova_server_object)
 
         #check the happiness of the instance
-        nova.ping_device(floating_ip, timeouts.ping_instance)
+        # nova.ping_device(server.ip_floating, timeouts.ping_instance)
         nova.ssh(server, timeouts.ssh_instance)
 
-        # nova.server_delete(server)
-        # nova.wait_for_deletion(server.id)
-
     except Exception as e:
-        bool_error = True
         msg = 'ERROR IN TEST: {0} {1} {2}'.format('test_nova_boot', instance_name, e.message)
         logger.info(msg)
-        print msg
-
-        # TODO bugbugbug - make sure this error is in the stats logging (timeout - likely)
-
     finally:
-        # env.test_case_stats[instance_name].ended()
         logger.info('END TEST: test_nova_boot {0}'.format(instance_name))
-        # logger.info('LOG RESULTS TO DB: test_nova_boot {0}'.format(instance_name))
-        #
-        # test_stats = env.test_case_stats[instance_name]
-        # nova_mood_db.insert_test_results(test_stats)
-        #
-        # if bool_error:
-        #     cleanup_server_safely(nova, server)
-        #     if env.nova_assign_floating_ip:
-        #         cleanup_floating_ip_safely(nova, server)
-
-
-@timeout(timeouts.cleanup_env_thread)
-def cleanup_nova_test_env(env, instance_name):
-    logger.info('Cleanup test environment: {0}'.format(instance_name))
-
-    try:
-        nova = NovaServiceTest(lock=global_lock,
-                               username=env.username,
-                               password=env.password,
-                               tenant_name=env.tenant_name,
-                               project_id=env.project_id,
-                               auth_url=env.auth_url,
-                               region=env.region,
-                               keypair=env.key_name,
-                               auth_ver=env.auth_ver,
-                               count=env.instance_count,
-                               instance_name=env.instance_name,
-                               test_name=env.test_name,
-                               timeout=env.timeout_minutes,
-                               availability_zone=env.availability_zone,
-                               action_sleep_interval=env.action_sleep_interval)
-
-        nova.connect()
-
-        # nova.delete_servers_and_attached_floating_ips(env.test_name)
-        nova.delete_servers_with_pattern(instance_name)
-
-        # TODO: load all these ignore ips from a config
-
-        # TODO: bugbugbug - need to find a better way of cleaning up orphaned floating ips
-        # nova.delete_floating_ips(ignore_ip_list={'15.185.188.49', '15.185.188.49', '15.185.103.238',
-        #                                          '15.185.111.169', '15.185.113.81'})
-
-        #  bugbugbug - wait for deletion old school style.
-        # need a more definitive way to know that we're done with cleanup.
-        print 'Sleep for 10 seconds and wait for deletions to clear out.'
-        sleep(10)  # wait for test deletions to clear out
-        print 'Cleanup complete!'
-    except Exception as e:
-        logger.info('ERROR IN TEST: cleanup_nova_test_env for parent job '.format(e))
-
-
-def cleanup_server_safely(nova, server):
-    try:
-        if nova is not None:
-            if server is not None:
-                logger.info('Cleanup server {0} safely.'.format(server.name))
-                nova.connect()
-                nova.server_delete_no_retry(server.id)
-    except Exception as e:
-        if 'HTTP 404' in str(e):
-            logger.info('Server not found - likely already cleaned up.'.format(e))
-        else:
-            logger.info('ERROR: failure with server cleanup'.format(e))
-
-
-def cleanup_floating_ip_safely(nova, server):
-    try:
-        if nova is not None:
-            if server is not None:
-                if server.ip_floating is not None:
-                    logger.info('Cleanup floating ip {0} safely.'.format(server.ip_floating))
-                    nova.connect()
-                    nova.floating_ip_delete(server.ip_floating)
-    except Exception as e:
-        if 'HTTP 404' in str(e):
-            logger.info('Floating ip not found - likely already cleaned up.'.format(e))
-        else:
-            logger.info('ERROR: failure with floating ip cleanup'.format(e))
-
-
-@timeout(timeouts.cleanup_env_thread)
-def cleanup_all_float_ip_in_test_env(env, ignore_ip_list=None):
-    logger.info('Cleanup test environment: {0}'.format(env.test_name))
-
-    try:
-        nova = NovaServiceTest(lock=global_lock,
-                               username=env.username,
-                               password=env.password,
-                               tenant_name=env.tenant_name,
-                               project_id=env.project_id,
-                               auth_url=env.auth_url,
-                               region=env.region,
-                               keypair=env.key_name,
-                               auth_ver=env.auth_ver,
-                               count=env.instance_count,
-                               instance_name=env.instance_name,
-                               test_name=env.test_name,
-                               timeout=env.timeout_minutes,
-                               availability_zone=env.availability_zone,
-                               action_sleep_interval=env.action_sleep_interval)
-
-        nova.connect()
-
-        # nova.delete_floating_ips(ignore_ip_list={'15.185.188.49', '15.185.188.49', '15.185.103.238',
-        #                                          '15.185.111.169', '15.185.113.81'})
-
-        nova.delete_floating_ips(ignore_ip_list)
-
-        #  bugbugbug - wait for deletion old school style.
-        # need a more definitive way to know that we're done with cleanup.
-        print 'Sleep for 10 seconds and wait for deletions to clear out.'
-        sleep(10)  # wait for test deletions to clear out
-        print 'Cleanup complete!'
-    except Exception as e:
-        logger.info('ERROR IN TEST: cleanup_nova_test_env for parent job '.format(e))
-
-
 
 
 @timeout(timeouts.cleanup_env_thread)
@@ -323,15 +188,6 @@ def create_perf_metric_security_group(env):
         logger.info('ERROR IN get_flavor_and_image_objects: '.format(str(e)))
     finally:
         return env
-
-
-def generate_rand_instance_name(test_name):
-        instance_name = "{0}-{1}-{2}{3}{4}".format(test_name,
-                                                   randint(100, 999),
-                                                   random.choice(string.ascii_lowercase),
-                                                   random.choice(string.ascii_lowercase),
-                                                   random.choice(string.ascii_lowercase))
-        return instance_name
 
 
 def parse_config_yaml(env):

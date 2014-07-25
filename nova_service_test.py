@@ -376,7 +376,12 @@ class NovaServiceTest(object):
 
     def fill_add_server_object(self, server):
         logger.debug('Fill new server data structure and add to server list')
-        server_object = Server(id=server.id, name=server.name)
+        server_id = server.id
+        server_name = server.name
+        server_object = Server(id=server_id, name=server_name)
+        server_object.update_ips(server.addresses)
+        server_object.update_floating_ip(server.addresses)
+
         self.servers.append(server_object)
         return server_object
 
