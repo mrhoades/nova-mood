@@ -53,7 +53,7 @@ def main():
     # test_nova_instance_longevity(env, 'nova-instance-longevity-az3', 'az3')
 
 
-def test_nova_instance_longevity(env, instance_name, zone, assign_floating_ip=None, force_rebuild=True):
+def test_nova_instance_longevity(env, instance_name, zone, assign_floating_ip=None, force_rebuild=False):
 
     """
     This test scenario boots instances if they don't exist, checks the happiness of
