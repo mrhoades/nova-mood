@@ -36,7 +36,7 @@ def main():
     env = NovaTestInfo()                 # construct test environment object
     env = parse_config_yaml(env)    # fill with yaml config
     env = parse_args(env)               # fill with args data
-    env.hard_rebuild = True            # use this switch to reconstruct the instances
+    env.hard_rebuild = False            # use this switch to reconstruct the instances
 
     env = get_flavor_and_image_objects(env)  # set image and flavor objects with env specific id's
     create_perf_metric_security_group(env)
