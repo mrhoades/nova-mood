@@ -57,14 +57,10 @@ def test_nova_instance_longevity(env, instance_name, zone, assign_floating_ip=No
 
     """
     This test scenario boots instances if they don't exist, checks the happiness of
-    the instances, and leaves them in place to test long term happiness. If there
-    were an issue with connectivity to the instance, the test will fail. An option to
-    perform a forceful rebuild is provided, in the event the instances can't
-    be recovered.
-
-    This test scenarios requires:
-        static floating ip reserved for this test
-        static unique instance name
+    the instances by ssh'ing into them and pinging google, and leaves them in
+    place to test long term happiness. If there were an issue with connectivity
+    to the instance, the test will fail. An option to perform a forceful rebuild is
+    provided, in the event the instances can't be recovered.
     """
 
     logger.info('BEGIN TEST: test_nova_instance_longevity {0}'.format(instance_name))
