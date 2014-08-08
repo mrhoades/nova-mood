@@ -479,6 +479,7 @@ class NovaServiceTest(object):
         self.server_attach_floating_ip(nova_server_object, address_object)
         server.update_floating_ip(address_object)
         self.floating_ips.append(server.ip_floating)
+        return address_object
 
     @nova_collector(bool_sync=False, tries=1, throttle=0)
     def floating_ip_deallocate(self, server, ip):
@@ -723,6 +724,7 @@ class NovaServiceTest(object):
     @nova_collector(tries=5, delay=3, back_off=4, throttle=nova_throttle.get_server_info)
     def nova_show_server(self, server_id):
         return self.nova.servers.get(server_id)
+
     @nova_collector(tries=1, bool_sync=False, throttle=0)
     def nova_show_server_no_retry(self, server_id):
         return self.nova.servers.get(server_id)
@@ -825,6 +827,57 @@ class NovaServiceTest(object):
                               'to the newly booted node ' \
                               '{2}'.format(socket.gethostname(), server.ip_floating, server.name)
                         raise Exception(msg)
+                else:
+                    logger.debug(str(err))
+
+            sleep(nova_throttle.poll_ssh)
+
+        msg = 'SSH Timeout Error: FAILED ssh to IP {0}-{1} after trying for {2} ' \
+              'seconds.'.format(server.ip_floating, server.name, timeout_seconds)
+        logger.info(msg)
+        raise Exception(msg)
+
+    @nova_collector(bool_sync=False, tries=1, throttle=0)
+    def ssh_remote_exec(self, server, cmd, expect_result_string,
+                        timeout_seconds=180, username='ubuntu'):
+
+        logger.info('Try exec command "{2}" remotely over SSH to {0} : {1}'.format(server.name, server.ip_floating, cmd))
+
+        stop_time = datetime.now() + timedelta(seconds=timeout_seconds)
+
+        while stop_time > datetime.now():
+
+            ssh_proc, out, err, return_code = None, None, None, None
+
+            try:
+                ssh_proc = subprocess.Popen(['ssh',
+                                            '-o StrictHostKeyChecking=no',
+                                            '-o UserKnownHostsFile=/dev/null',
+                                            '{0}@{1}'.format(username, server.ip_floating),
+                                            cmd],
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE)
+                logger.info('Attempt ssh to IP {0}'.format(server.ip_floating))
+                out, err = ssh_proc.communicate()
+                return_code = ssh_proc.returncode
+
+            except Exception as e:
+                logger.info('Caught Exception while trying ssh {0}@{1} - {2} - '
+                            '{3}'.format(username, server.ip_floating, server.name, e))
+
+            finally:
+                logger.debug('SSH Return Code: ' + str(return_code))
+                logger.debug('SSH Request Output: ' + str(out))
+
+                if return_code == 0 and out.find(expect_result_string) > -1:
+                    logger.info('Command ssh to IP {0} {1}'.format(server.ip_floating, server.name))
+                    return True
+                elif return_code == 1:
+                    logger.debug('Host not found IP {0} {1}'.format(server.ip_floating, server.name))
+                elif return_code == 2:
+                    logger.debug('SSH to IP timed out {0} {1}'.format(server.ip_floating, server.name))
+                elif return_code == 255:
+                    logger.debug(str(err))
                 else:
                     logger.debug(str(err))
 
