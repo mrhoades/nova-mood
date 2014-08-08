@@ -118,6 +118,8 @@ def test_nova_instance_longevity(env, instance_name, zone, assign_floating_ip=No
         #check the happiness of the instance
         # nova.ping_device(server.ip_floating, timeouts.ping_instance)
         nova.ssh(server, timeouts.ssh_instance)
+        nova.ssh_remote_exec(server, 'ping -c3 www.google.com',
+                             '3 packets transmitted, 3 received', timeouts.ssh_instance)
 
     except Exception as e:
         msg = 'ERROR IN TEST: {0} {1} {2}'.format('test_nova_boot', instance_name, e.message)
