@@ -52,16 +52,22 @@ def test_nova_floating_ip_reuse(env, instance_name, zone, assign_floating_ip=Non
         ssh's into the instances
         rotates the floating ip
         ssh's into the instances
+        cleans up the ips
         cleans up the instances
     """
 
     logger.info('BEGIN TEST: test_nova_floating_ip_reuse {0}'.format(instance_name))
 
-    nova, nova_server_object, server, bool_error = None, None, None, False
+    nova, bool_error = None, None
+
+    nova_server_object1, server1, instance_name1 = None, None, instance_name + '1'
+    nova_server_object2, server2, instance_name2 = None, None, instance_name + '2'
+    nova_server_object3, server3, instance_name3 = None, None, instance_name + '3'
 
     try:
 
-        nova = NovaServiceTest(throttle_in=throttle,
+        nova = NovaServiceTest(lock=global_lock,
+                               throttle_in=throttle,
                                username=env.username,
                                password=env.password,
                                tenant_name=env.tenant_name,
@@ -83,35 +89,128 @@ def test_nova_floating_ip_reuse(env, instance_name, zone, assign_floating_ip=Non
 
         nova.connect()
 
-        # force rebuild to clean env
-        if force_rebuild is True:
-            nova.delete_servers_with_pattern(instance_name)
-            nova.wait_for_deletion(instance_name)
+        # boots 3 instances
+        nova_server_object1 = nova.boot(instance_name1)
+        nova_server_object2 = nova.boot(instance_name2)
+        nova_server_object3 = nova.boot(instance_name3)
 
-        # if the instance already exists, just build it's object, get it's ip address
-        if nova.server_with_name_exists(instance_name):
-            nova_server_object = nova.server_with_name_get(instance_name)
-            server = nova.fill_add_server_object(nova_server_object)
-        else:
-            nova_server_object = nova.boot(instance_name)
-            server = nova.fill_add_server_object(nova_server_object)
-            nova.wait_for_active_status(server, timeouts.wait_for_active)
+        server1 = nova.fill_add_server_object(nova_server_object1)
+        server2 = nova.fill_add_server_object(nova_server_object2)
+        server3 = nova.fill_add_server_object(nova_server_object3)
 
-            if assign_floating_ip is not None:
-                floating_ip_object = nova.floating_ip_get_object(assign_floating_ip)
-                nova.server_attach_floating_ip(nova_server_object, floating_ip_object)
-            nova_server_object = nova.server_with_name_get(instance_name)
-            server = nova.fill_add_server_object(nova_server_object)
+        # wait until all active
+        nova.wait_for_active_status(server1, timeouts.wait_for_active)
+        nova.wait_for_active_status(server2, timeouts.wait_for_active)
+        nova.wait_for_active_status(server3, timeouts.wait_for_active)
 
-        #check the happiness of the instance
-        # nova.ping_device(server.ip_floating, timeouts.ping_instance)
-        nova.ssh(server, timeouts.ssh_instance)
+        # attach floating ips to the instances
+        floating_ip1 = nova.floating_ip_create()
+        floating_ip2 = nova.floating_ip_create()
+        floating_ip3 = nova.floating_ip_create()
+
+        nova.server_attach_floating_ip(nova_server_object1, floating_ip1)
+        nova.server_attach_floating_ip(nova_server_object2, floating_ip2)
+        nova.server_attach_floating_ip(nova_server_object3, floating_ip3)
+
+        server1.update_floating_ip(floating_ip1)
+        server2.update_floating_ip(floating_ip2)
+        server3.update_floating_ip(floating_ip3)
+
+        # ssh install all instances
+        nova.ssh(server1, timeouts.ssh_instance)
+        nova.ssh(server2, timeouts.ssh_instance)
+        nova.ssh(server3, timeouts.ssh_instance)
+
+        # detach and rotate the ips among the server instances
+        nova.server_detach_floating_ip(nova_server_object1, floating_ip1)
+        nova.server_detach_floating_ip(nova_server_object2, floating_ip2)
+        nova.server_detach_floating_ip(nova_server_object3, floating_ip3)
+
+        nova.server_attach_floating_ip(nova_server_object1, floating_ip3)
+        nova.server_attach_floating_ip(nova_server_object2, floating_ip1)
+        nova.server_attach_floating_ip(nova_server_object3, floating_ip2)
+
+        server1.update_floating_ip(floating_ip3)
+        server2.update_floating_ip(floating_ip1)
+        server3.update_floating_ip(floating_ip2)
+
+        nova.ssh(server1, timeouts.ssh_instance)
+        nova.ssh(server2, timeouts.ssh_instance)
+        nova.ssh(server3, timeouts.ssh_instance)
+
+        # detach and rotate the ips among the server instances
+        nova.server_detach_floating_ip(nova_server_object1, floating_ip3)
+        nova.server_detach_floating_ip(nova_server_object2, floating_ip1)
+        nova.server_detach_floating_ip(nova_server_object3, floating_ip2)
+
+        nova.server_attach_floating_ip(nova_server_object1, floating_ip2)
+        nova.server_attach_floating_ip(nova_server_object2, floating_ip3)
+        nova.server_attach_floating_ip(nova_server_object3, floating_ip1)
+
+        server1.update_floating_ip(floating_ip2)
+        server2.update_floating_ip(floating_ip3)
+        server3.update_floating_ip(floating_ip1)
+
+        nova.ssh(server1, timeouts.ssh_instance)
+        nova.ssh(server2, timeouts.ssh_instance)
+        nova.ssh(server3, timeouts.ssh_instance)
+
+        # cleanup goobers
+        nova.server_delete(server1)
+        nova.server_delete(server2)
+        nova.server_delete(server3)
+
+        nova.wait_for_deletion(server1.id)
+        nova.wait_for_deletion(server2.id)
+        nova.wait_for_deletion(server3.id)
+
+        nova.floating_ip_delete(floating_ip1)
+        nova.floating_ip_delete(floating_ip2)
+        nova.floating_ip_delete(floating_ip3)
 
     except Exception as e:
+        bool_error = True
         msg = 'ERROR IN TEST: {0} {1} {2}'.format('test_nova_boot', instance_name, e.message)
         logger.info(msg)
     finally:
         logger.info('END TEST: test_nova_boot {0}'.format(instance_name))
+
+        if bool_error:
+            cleanup_server_safely(nova, server1)
+            cleanup_server_safely(nova, server2)
+            cleanup_server_safely(nova, server3)
+            cleanup_floating_ip_safely(nova, server1)
+            cleanup_floating_ip_safely(nova, server2)
+            cleanup_floating_ip_safely(nova, server3)
+
+
+def cleanup_server_safely(nova, server):
+    try:
+        if nova is not None:
+            if server is not None:
+                logger.info('Cleanup server {0} safely.'.format(server.name))
+                nova.connect()
+                nova.server_delete_no_retry(server.id)
+    except Exception as e:
+        if 'HTTP 404' in str(e):
+            logger.info('Server not found - likely already cleaned up.'.format(e))
+        else:
+            logger.info('ERROR: failure with server cleanup'.format(e))
+
+
+def cleanup_floating_ip_safely(nova, server):
+    try:
+        if nova is not None:
+            if server is not None:
+                if server.ip_floating is not None:
+                    logger.info('Cleanup floating ip {0} safely.'.format(server.ip_floating))
+                    nova.connect()
+                    nova.floating_ip_delete(server.ip_floating)
+    except Exception as e:
+        if 'HTTP 404' in str(e):
+            logger.info('Floating ip not found - likely already cleaned up.'.format(e))
+        else:
+            logger.info('ERROR: failure with floating ip cleanup'.format(e))
 
 
 @timeout(timeouts.cleanup_env_thread)
