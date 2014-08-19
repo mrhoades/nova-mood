@@ -40,6 +40,7 @@ def main():
 
     env = get_flavor_and_image_objects(env)  # set image and flavor objects with env specific id's
     create_perf_metric_security_group(env)
+    boot_strap_default_keypairs(env)
 
     # test_nova_instance_longevity(env, 'nova-instance-longevity-az1', 'az1', '15.125.72.139')
     # test_nova_instance_longevity(env, 'nova-instance-longevity-az2', 'az2', '15.125.115.198')
@@ -151,6 +152,36 @@ def get_flavor_and_image_objects(env):
 
     except Exception as e:
         logger.info('ERROR IN get_flavor_and_image_objects: '.format(str(e)))
+    finally:
+        return env
+
+
+@timeout(timeouts.cleanup_env_thread)
+def boot_strap_default_keypairs(env):
+    logger.info('Create default keypairs...')
+
+    try:
+        nova = NovaServiceTest(lock=global_lock,
+                               username=env.username,
+                               password=env.password,
+                               tenant_name=env.tenant_name,
+                               project_id=env.project_id,
+                               auth_url=env.auth_url,
+                               region=env.region,
+                               keypair=env.key_name,
+                               auth_ver=env.auth_ver,
+                               count=env.instance_count,
+                               instance_name=env.instance_name,
+                               test_name=env.test_name,
+                               timeout=env.timeout_minutes,
+                               availability_zone=env.availability_zone)
+
+        nova.connect()
+
+        nova.add_keypair_if_not_exists('paas-racks-jenkins', 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC8Eds135oNd2Ytu7vRjGXne4g8ZlIST1Q/CtMobiUIsW9Ph3BC1F9QcR3tuaHskZV2DW4Q6GGfF2HFnOg8o/BPpD6XuIu+dwqoONumHi+c4QWzXg+2P01zObUDHCQ0Wf9//IcWODmfGGCT0MO9zqokoC6xlkaNfAuUMOFh3fFJONcLJBB0aXR8/ju8w/8kvcLn6r/wKgmKyF4GsQa/knj9+zhCsW6nBRXl7FzvWiJLJ7xXYx/xW04gN1R7M150+Mxrd2qfKciy+AP/HCapm3uQjP5qLC/9xYvYAM9MRkof5sWlS6+5AIaGyLT92ELCA4zjyBjn39nhkHl/3XmN05Cb')
+
+    except Exception as e:
+        logger.info('ERROR IN boot_strap_default_keypairs: '.format(str(e)))
     finally:
         return env
 
