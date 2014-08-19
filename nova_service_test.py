@@ -837,6 +837,16 @@ class NovaServiceTest(object):
         logger.info(msg)
         raise Exception(msg)
 
+    @nova_collector(bool_sync=False, tries=4)
+    def add_keypair_if_not_exists(self, key_name, pub_key_value):
+        logger.info('Add key if key with name is not in system.')
+        key_pair_list = self.nova.keypairs.list()
+        if any(x for x in key_pair_list if str(x.name) == key_name):
+            logger.info('KeyPair {0} already exists.'.format(key_name))
+        else:
+            logger.info('Did not find KeyPair {0} adding it now....'.format(key_name))
+            self.nova.keypairs.create(key_name, pub_key_value)
+
     @nova_collector(bool_sync=False, tries=1, throttle=0)
     def ssh_remote_exec(self, server, cmd, expect_result_string,
                         timeout_seconds=180, username='ubuntu'):
