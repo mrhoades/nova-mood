@@ -156,6 +156,14 @@ def test_nova_floating_ip_reuse(env, instance_name, zone, assign_floating_ip=Non
         nova.ssh(server3, timeouts.ssh_instance)
 
         # cleanup goobers
+        nova.server_detach_floating_ip(nova_server_object1, floating_ip3)
+        nova.server_detach_floating_ip(nova_server_object2, floating_ip1)
+        nova.server_detach_floating_ip(nova_server_object3, floating_ip2)
+
+        nova.floating_ip_delete(floating_ip1)
+        nova.floating_ip_delete(floating_ip2)
+        nova.floating_ip_delete(floating_ip3)
+
         nova.server_delete(server1)
         nova.server_delete(server2)
         nova.server_delete(server3)
@@ -163,10 +171,6 @@ def test_nova_floating_ip_reuse(env, instance_name, zone, assign_floating_ip=Non
         nova.wait_for_deletion(server1.id)
         nova.wait_for_deletion(server2.id)
         nova.wait_for_deletion(server3.id)
-
-        nova.floating_ip_delete(floating_ip1)
-        nova.floating_ip_delete(floating_ip2)
-        nova.floating_ip_delete(floating_ip3)
 
     except Exception as e:
         bool_error = True
@@ -176,12 +180,12 @@ def test_nova_floating_ip_reuse(env, instance_name, zone, assign_floating_ip=Non
         logger.info('END TEST: test_nova_boot {0}'.format(instance_name))
 
         if bool_error:
-            cleanup_server_safely(nova, server1)
-            cleanup_server_safely(nova, server2)
-            cleanup_server_safely(nova, server3)
             cleanup_floating_ip_safely(nova, server1)
             cleanup_floating_ip_safely(nova, server2)
             cleanup_floating_ip_safely(nova, server3)
+            cleanup_server_safely(nova, server1)
+            cleanup_server_safely(nova, server2)
+            cleanup_server_safely(nova, server3)
 
 
 def cleanup_server_safely(nova, server):
@@ -205,7 +209,8 @@ def cleanup_floating_ip_safely(nova, server):
                 if server.ip_floating is not None:
                     logger.info('Cleanup floating ip {0} safely.'.format(server.ip_floating))
                     nova.connect()
-                    nova.floating_ip_delete(server.ip_floating)
+                    ip_object = nova.floating_ip_get_object(server.ip_floating)
+                    nova.floating_ip_delete(ip_object)
     except Exception as e:
         if 'HTTP 404' in str(e):
             logger.info('Floating ip not found - likely already cleaned up.'.format(e))
